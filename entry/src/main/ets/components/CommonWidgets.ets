@@ -1,5 +1,4 @@
 import { AppTheme } from '../common/Theme';
-import { ImmersiveMaterialSurface } from './ImmersiveMaterialSurface';
 
 @Component
 export struct PageTopBar {
@@ -7,28 +6,21 @@ export struct PageTopBar {
   @StorageLink('safeTopVp') safeTop: number = 0;
 
   build() {
-    ImmersiveMaterialSurface({
-      surfaceHeight: this.safeTop + 56,
-      bleedHorizontal: AppTheme.pagePadding
-    }) {
-      Column() {
-        Blank().height(this.safeTop)
-        Row() {
-          Text(this.title)
-            .fontSize(24)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppTheme.textPrimary)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-        .width('100%')
-        .height(56)
-        .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding })
-        .alignItems(VerticalAlign.Center)
+    Column() {
+      Blank().height(this.safeTop + AppTheme.pagePadding)
+      Row() {
+        Text(this.title)
+          .fontSize(24)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(AppTheme.textPrimary)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .width('100%')
-      .height('100%')
+      .height(48)
+      .alignItems(VerticalAlign.Center)
     }
+    .width('100%')
   }
 }
 
