@@ -4,7 +4,7 @@ import { EngineCore } from '../model/Engine';
 import { EngineRegistry } from '../engine/EngineRegistry';
 import { LibraryStore } from '../store/LibraryStore';
 import { SettingsStore } from '../store/SettingsStore';
-import { PageHeader, SectionCard, SettingRow } from '../components/CommonWidgets';
+import { PageTopBar, SectionCard, SettingRow } from '../components/CommonWidgets';
 
 @Component
 export struct SettingsView {
@@ -20,7 +20,7 @@ export struct SettingsView {
   build() {
     Scroll() {
       Column({ space: 14 }) {
-        PageHeader({ title: '设置', subtitle: '存储、内核与画音参数' })
+        PageTopBar({ title: '设置' })
 
         SectionCard({ title: '存储' }) {
           Column() {
@@ -186,11 +186,10 @@ export struct SettingsView {
         }
       }
       .width('100%')
-      .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding, top: AppTheme.pagePadding, bottom: 84 })
+      .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding, top: 0, bottom: 84 })
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(AppTheme.bg)
     .scrollBar(BarState.Off)
   }
 

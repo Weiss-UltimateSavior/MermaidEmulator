@@ -44,7 +44,7 @@ export class EngineCore {
   vendor: string = '';
   version: string = '';
   status: EngineStatus = EngineStatus.PLANNED;
-  accent: string = '#8B7BFF';
+  accent: string = '#6C5CE7';
   description: string = '';
   runtime: string = '';
   extensions: string[] = [];
@@ -73,13 +73,13 @@ export class EngineCore {
   statusColor(): string {
     switch (this.status) {
       case EngineStatus.READY:
-        return '#42D19B';
+        return '#18A46B';
       case EngineStatus.NOT_INTEGRATED:
-        return '#F0B23F';
+        return '#D98A0B';
       case EngineStatus.DISABLED:
-        return '#5F7396';
+        return '#8896AD';
       default:
-        return '#8B7BFF';
+        return '#6C5CE7';
     }
   }
 
@@ -104,7 +104,7 @@ export class PlannedEngine extends EngineCore {
     this.vendor = vendor;
     this.version = '—';
     this.status = EngineStatus.PLANNED;
-    this.accent = '#5F7396';
+    this.accent = '#8896AD';
     this.description = description;
     this.runtime = '尚未排期';
     this.extensions = extensions;

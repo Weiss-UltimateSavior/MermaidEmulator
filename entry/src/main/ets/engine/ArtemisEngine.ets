@@ -9,7 +9,7 @@ export class ArtemisEngine extends EngineCore {
     this.vendor = 'Artemis Project';
     this.version = '待接入';
     this.status = EngineStatus.NOT_INTEGRATED;
-    this.accent = '#8B7BFF';
+    this.accent = '#6C5CE7';
     this.runtime = 'arm64 运行时（规划中）';
     this.description = 'Artemis Engine 是广泛用于视觉小说与 AVG 的运行时，使用 .pfs 资源封包与 KAG 风格脚本，支持视频、音频与多存档槽位。本应用将首个接入该内核。';
     this.extensions = ['.pfs', '.asb', '.psb', '.tjs'];

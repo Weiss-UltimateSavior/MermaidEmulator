@@ -1,22 +1,23 @@
 export class AppTheme {
-  static readonly bg: string = '#070D1A';
-  static readonly bgElevated: string = '#0C1425';
-  static readonly surface: string = '#111C31';
-  static readonly surfaceAlt: string = '#182742';
-  static readonly surfaceHigh: string = '#203150';
-  static readonly border: string = '#1B2A46';
+  static readonly bg: string = '#F2F5FA';
+  static readonly bgElevated: string = '#FFFFFF';
+  static readonly surface: string = '#FFFFFF';
+  static readonly surfaceAlt: string = '#EEF3FA';
+  static readonly surfaceHigh: string = '#DEE7F5';
+  static readonly border: string = '#E4EAF4';
 
-  static readonly primary: string = '#3FC5F0';
-  static readonly primaryDim: string = '#1C7BA3';
-  static readonly accent: string = '#8B7BFF';
+  static readonly primary: string = '#0E8BD3';
+  static readonly primaryDim: string = '#0A6BA4';
+  static readonly accent: string = '#6C5CE7';
   static readonly accentDim: string = '#4F44A8';
-  static readonly success: string = '#42D19B';
-  static readonly warning: string = '#F0B23F';
-  static readonly danger: string = '#F2695F';
+  static readonly success: string = '#18A46B';
+  static readonly warning: string = '#D98A0B';
+  static readonly danger: string = '#D6453D';
 
-  static readonly textPrimary: string = '#EAF3FF';
-  static readonly textSecondary: string = '#9DB2D4';
-  static readonly textTertiary: string = '#5F7396';
+  static readonly onPrimary: string = '#FFFFFF';
+  static readonly textPrimary: string = '#0F1A2C';
+  static readonly textSecondary: string = '#4A5B76';
+  static readonly textTertiary: string = '#8896AD';
 
   static readonly radiusL: number = 20;
   static readonly radiusM: number = 14;
@@ -25,14 +26,14 @@ export class AppTheme {
   static readonly pagePadding: number = 16;
 
   private static readonly covers: string[][] = [
-    ['#274B9F', '#111E45'],
-    ['#0F6E8C', '#0A2C44'],
-    ['#5B3FA8', '#251A4D'],
-    ['#1C7A5E', '#0D3327'],
-    ['#8A4A6E', '#3A1C30'],
-    ['#A2632A', '#42260F'],
-    ['#3B5AA8', '#171F42'],
-    ['#6B3FA0', '#2A1543']
+    ['#3B6FD4', '#1D3B7A'],
+    ['#1F93B5', '#0F4A63'],
+    ['#7B62E8', '#3B2E86'],
+    ['#2AA37B', '#14523D'],
+    ['#B25E8C', '#5C2B44'],
+    ['#C97F3D', '#6B3F16'],
+    ['#4F74CC', '#22325E'],
+    ['#8A5BD4', '#3E2168']
   ];
 
   static cover(seed: string): string[] {
@@ -53,7 +54,7 @@ export class AppTheme {
   }
 
   static heroGradient(color: string): Array<[ResourceColor, number]> {
-    return [[color, 0.0], [AppTheme.bg, 1.0]];
+    return [[AppTheme.alpha(color, '2E'), 0.0], [AppTheme.bgElevated, 1.0]];
   }
 
   static coverGradient(seed: string): Array<[ResourceColor, number]> {

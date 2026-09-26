@@ -1,34 +1,34 @@
 import { AppTheme } from '../common/Theme';
+import { ImmersiveMaterialSurface } from './ImmersiveMaterialSurface';
 
 @Component
-export struct PageHeader {
+export struct PageTopBar {
   title: string = '';
-  subtitle: string = '';
-
-  @Builder
-  emptyTrailing() {
-  }
-
-  @BuilderParam trailing: () => void = this.emptyTrailing;
+  @StorageLink('safeTopVp') safeTop: number = 0;
 
   build() {
-    Row({ space: 10 }) {
-      Column({ space: 4 }) {
-        Text(this.title)
-          .fontSize(24)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppTheme.textPrimary)
-        Text(this.subtitle)
-          .fontSize(12)
-          .fontColor(AppTheme.textTertiary)
+    ImmersiveMaterialSurface({
+      surfaceHeight: this.safeTop + 56,
+      bleedHorizontal: AppTheme.pagePadding
+    }) {
+      Column() {
+        Blank().height(this.safeTop)
+        Row() {
+          Text(this.title)
+            .fontSize(24)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(AppTheme.textPrimary)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .width('100%')
+        .height(56)
+        .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding })
+        .alignItems(VerticalAlign.Center)
       }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
-
-      this.trailing()
+      .width('100%')
+      .height('100%')
     }
-    .width('100%')
-    .alignItems(VerticalAlign.Center)
   }
 }
 
