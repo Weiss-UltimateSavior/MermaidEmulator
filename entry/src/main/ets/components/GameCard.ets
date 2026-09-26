@@ -1,31 +1,40 @@
+import { fileUri } from '@kit.CoreFileKit';
 import { AppTheme } from '../common/Theme';
-import { Format } from '../common/Format';
 import { Game } from '../model/Game';
 import { EngineRegistry } from '../engine/EngineRegistry';
 
 @Component
 export struct GameCard {
   @ObjectLink game: Game;
+  onTap: (game: Game) => void = (game: Game) => {
+  };
 
   build() {
     Column({ space: 8 }) {
       Stack({ alignContent: Alignment.TopStart }) {
-        Column()
+        if (this.game.coverPath.length > 0) {
+          Image(fileUri.getUriFromPath(this.game.coverPath))
+            .width('100%')
+            .height('100%')
+            .objectFit(ImageFit.Cover)
+        } else {
+          Column()
+            .width('100%')
+            .height('100%')
+            .borderRadius(AppTheme.radiusM)
+            .linearGradient({ angle: 155, colors: AppTheme.coverGradient(this.game.title) })
+
+          Column() {
+            Text(this.game.title.length > 0 ? this.game.title.substring(0, 1) : '?')
+              .fontSize(42)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#EAF3FF')
+          }
           .width('100%')
           .height('100%')
-          .borderRadius(AppTheme.radiusM)
-          .linearGradient({ angle: 155, colors: AppTheme.coverGradient(this.game.title) })
-
-        Column() {
-          Text(this.game.title.length > 0 ? this.game.title.substring(0, 1) : '?')
-            .fontSize(42)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#EAF3FF')
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
         }
-        .width('100%')
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
 
         Row() {
           Text(EngineRegistry.find(this.game.engineId).shortName)
@@ -36,47 +45,22 @@ export struct GameCard {
             .borderRadius(6)
         }
         .margin({ left: 8, top: 8 })
-
-        if (this.game.favorite) {
-          Row() {
-            SymbolGlyph($r('sys.symbol.star_fill'))
-              .fontSize(13)
-              .fontColor(['#FFD66B'])
-          }
-          .width('100%')
-          .justifyContent(FlexAlign.End)
-          .padding({ right: 8, top: 8 })
-        }
       }
       .width('100%')
       .aspectRatio(0.74)
       .borderRadius(AppTheme.radiusM)
       .clip(true)
 
-      Column({ space: 3 }) {
-        Text(this.game.title)
-          .fontSize(14)
-          .fontColor(AppTheme.textPrimary)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
-        Text(this.subLine())
-          .fontSize(11)
-          .fontColor(AppTheme.textTertiary)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
-      }
-      .alignItems(HorizontalAlign.Start)
-      .width('100%')
+      Text(this.game.title)
+        .fontSize(14)
+        .fontColor(AppTheme.textPrimary)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%')
     }
     .width('100%')
-  }
-
-  private subLine(): string {
-    if (this.game.lastPlayedAt > 0) {
-      return `上次 ${Format.date(this.game.lastPlayedAt)} · ${this.game.playCount} 次`;
-    }
-    return `导入于 ${Format.date(this.game.importedAt)}`;
+    .onClick(() => {
+      this.onTap(this.game);
+    })
   }
 }

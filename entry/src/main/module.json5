@@ -10,6 +10,14 @@
     "deliveryWithInstall": true,
     "installationFree": false,
     "pages": "$profile:main_pages",
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.FILE_ACCESS_PERSIST"
+      },
+      {
+        "name": "ohos.permission.INTERNET"
+      }
+    ],
     "metadata": [
       {
         "name": "ohos.arkui.UIMaterial.state",

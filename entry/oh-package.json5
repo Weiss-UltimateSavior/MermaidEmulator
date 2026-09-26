@@ -5,6 +5,8 @@
   "main": "",
   "author": "",
   "license": "",
-  "dependencies": {}
+  "dependencies": {
+    "libartemishost.so": "file:./src/main/cpp/types/libartemishost"
+  }
 }
 

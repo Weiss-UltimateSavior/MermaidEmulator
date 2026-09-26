@@ -45,6 +45,7 @@ export class EngineCore {
   version: string = '';
   status: EngineStatus = EngineStatus.PLANNED;
   accent: string = '#6C5CE7';
+  icon: Resource = $r('sys.symbol.book_pages');
   description: string = '';
   runtime: string = '';
   extensions: string[] = [];

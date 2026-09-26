@@ -3,7 +3,9 @@ import { HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDesignKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { AppTheme } from '../common/Theme';
+import { GameFolderStore } from '../store/GameFolderStore';
 import { LibraryStore } from '../store/LibraryStore';
+import { SettingsStore } from '../store/SettingsStore';
 import { LibraryView } from '../view/LibraryView';
 import { KernelView } from '../view/KernelView';
 import { SettingsView } from '../view/SettingsView';
@@ -25,6 +27,10 @@ struct Index {
     const context = this.getUIContext().getHostContext();
     if (context !== undefined) {
       LibraryStore.init(context);
+      SettingsStore.init(context);
+      GameFolderStore.activateAll(LibraryStore.folders()).catch((err: BusinessError) => {
+        hilog.warn(DOMAIN, TAG, 'activate folders failed: %{public}s', JSON.stringify(err));
+      });
     }
     this.setupSafeArea();
   }

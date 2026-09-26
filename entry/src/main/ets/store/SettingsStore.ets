@@ -21,9 +21,27 @@ export class SettingsStore {
       AppStorage.setOrCreate<string>('stg_fps', SettingsStore.readString('stg_fps', '60 FPS'));
       AppStorage.setOrCreate<string>('stg_scaleMode', SettingsStore.readString('stg_scaleMode', '保持比例'));
       AppStorage.setOrCreate<number>('stg_volume', SettingsStore.readNumber('stg_volume', 70));
+      AppStorage.setOrCreate<boolean>('stg_coverVndb', SettingsStore.readBool('stg_coverVndb', true));
+      AppStorage.setOrCreate<boolean>('stg_coverSteam', SettingsStore.readBool('stg_coverSteam', true));
+      AppStorage.setOrCreate<boolean>('stg_coverBangumi', SettingsStore.readBool('stg_coverBangumi', true));
+      AppStorage.setOrCreate<boolean>('stg_coverOnlyMissing', SettingsStore.readBool('stg_coverOnlyMissing', true));
+      AppStorage.setOrCreate<string>('stg_engineOs', SettingsStore.readString('stg_engineOs', 'windows'));
+      AppStorage.setOrCreate<string>('stg_engineScale', SettingsStore.readString('stg_engineScale', '跟随游戏'));
+      AppStorage.setOrCreate<string>('stg_engineOrientation', SettingsStore.readString('stg_engineOrientation', '固定横屏'));
+      AppStorage.setOrCreate<boolean>('stg_engineVsync', SettingsStore.readBool('stg_engineVsync', true));
     } catch (err) {
       hilog.error(DOMAIN, TAG, 'init failed: %{public}s', JSON.stringify(err));
     }
+  }
+
+  static setString(key: string, value: string): void {
+    AppStorage.setOrCreate<string>(key, value);
+    SettingsStore.persist();
+  }
+
+  static setBool(key: string, value: boolean): void {
+    AppStorage.setOrCreate<boolean>(key, value);
+    SettingsStore.persist();
   }
 
   static persist(): void {
@@ -39,6 +57,14 @@ export class SettingsStore {
       pref.putSync('stg_fps', AppStorage.get<string>('stg_fps') ?? '60 FPS');
       pref.putSync('stg_scaleMode', AppStorage.get<string>('stg_scaleMode') ?? '保持比例');
       pref.putSync('stg_volume', AppStorage.get<number>('stg_volume') ?? 70);
+      pref.putSync('stg_coverVndb', AppStorage.get<boolean>('stg_coverVndb') ?? true);
+      pref.putSync('stg_coverSteam', AppStorage.get<boolean>('stg_coverSteam') ?? true);
+      pref.putSync('stg_coverBangumi', AppStorage.get<boolean>('stg_coverBangumi') ?? true);
+      pref.putSync('stg_coverOnlyMissing', AppStorage.get<boolean>('stg_coverOnlyMissing') ?? true);
+      pref.putSync('stg_engineOs', AppStorage.get<string>('stg_engineOs') ?? 'windows');
+      pref.putSync('stg_engineScale', AppStorage.get<string>('stg_engineScale') ?? '跟随游戏');
+      pref.putSync('stg_engineOrientation', AppStorage.get<string>('stg_engineOrientation') ?? '固定横屏');
+      pref.putSync('stg_engineVsync', AppStorage.get<boolean>('stg_engineVsync') ?? true);
       pref.flush((err) => {
         if (err) {
           hilog.warn(DOMAIN, TAG, 'flush failed: %{public}s', JSON.stringify(err));

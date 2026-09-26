@@ -1,0 +1,6 @@
+{
+  "name": "libartemishost.so",
+  "types": "./index.d.ts",
+  "version": "1.0.0",
+  "description": "Artemis 引擎 OHOS 宿主（NAPI）类型声明"
+}

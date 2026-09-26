@@ -13,8 +13,18 @@ export class EngineRegistry {
     EngineRegistry.plannedCores = [
       new PlannedEngine('kirikiri', 'KiriKiri', 'KiriKiri Project', '吉里吉里内核，支持 .xp3 封包与 KAG 脚本。', ['.xp3', '.ks']),
       new PlannedEngine('renpy', "Ren'Py", 'Ren\'Py Team', 'Python 驱动的视觉小说引擎，支持 .rpa 归档。', ['.rpa', '.rpy']),
-      new PlannedEngine('onscripter', 'ONScripter', 'ONScripter Project', '经典 NScripter 兼容内核，支持 .nsa / .sar 封包。', ['.nsa', '.sar', '.nscript'])
+      new PlannedEngine('onscripter', 'ONScripter', 'ONScripter Project', '经典 NScripter 兼容内核，支持 .nsa / .sar 封包。', ['.nsa', '.sar', '.nscript']),
+      EngineRegistry.rpgmEngine('rpgm_mv', 'RPG Maker MV', 'RPG Maker MV 游戏（index.html + js/rpg_core.js），运行时规划中。', ['.js']),
+      EngineRegistry.rpgmEngine('rpgm_mz', 'RPG Maker MZ', 'RPG Maker MZ 游戏（index.html + js/rmmz_core.js），运行时规划中。', ['.js']),
+      new PlannedEngine('tyrano', 'TyranoScript', 'ShikemokuMK', 'TyranoScript 视觉小说（index.html + tyrano/ 目录），运行时规划中。', ['.ks', '.asar'])
     ];
+  }
+
+  private static rpgmEngine(id: string, name: string, description: string,
+    extensions: string[]): EngineCore {
+    const engine = new PlannedEngine(id, name, 'Kadokawa', description, extensions);
+    engine.icon = $r('sys.symbol.gamecontroller');
+    return engine;
   }
 
   static installed(): EngineCore[] {

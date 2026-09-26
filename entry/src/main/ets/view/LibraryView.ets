@@ -1,32 +1,55 @@
 import { picker } from '@kit.CoreFileKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { BusinessError } from '@kit.BasicServicesKit';
+import { router } from '@kit.ArkUI';
 import { AppTheme } from '../common/Theme';
 import { Game } from '../model/Game';
 import { GameFolderStore } from '../store/GameFolderStore';
 import { GameCard } from '../components/GameCard';
 import { EmptyState, PageTopBar } from '../components/CommonWidgets';
+import { SettingRow } from '../components/SettingRow';
 
 const DOMAIN: number = 0x4D45;
 const TAG: string = 'LibraryView';
+
+class GameActionItem {
+  icon: Resource;
+  label: string;
+  key: string;
+
+  constructor(icon: Resource, label: string, key: string) {
+    this.icon = icon;
+    this.label = label;
+    this.key = key;
+  }
+}
 
 @Component
 export struct LibraryView {
   @StorageLink('games') games: Game[] = [];
   @State keyword: string = '';
   @State importing: boolean = false;
+  @State showGameSheet: boolean = false;
+  @State selectedGame: Game = Game.placeholder();
+  private gameActions: GameActionItem[] = [
+    new GameActionItem($r('sys.symbol.play_fill'), '启动游戏', 'launch'),
+    new GameActionItem($r('sys.symbol.picture_and_pencil'), '修改封面', 'cover'),
+    new GameActionItem($r('sys.symbol.gearshape'), '引擎设置', 'engine'),
+    new GameActionItem($r('sys.symbol.rename'), '名称修改', 'rename'),
+    new GameActionItem($r('sys.symbol.trash'), '删除游戏', 'delete')
+  ];
 
   build() {
-    Column({ space: 14 }) {
-      PageTopBar({ title: '游戏库' })
+    Column({ space: AppTheme.topBarGap }) {
+      PageTopBar({ title: '游戏仓库' })
 
-      Search({ value: this.keyword, placeholder: '搜索游戏名称' })
-        .height(40)
+      Search({ value: this.keyword })
+        .height(50)
         .width('100%')
         .backgroundColor(AppTheme.surface)
-        .placeholderColor(AppTheme.textTertiary)
-        .textFont({ size: 14 })
+        .textFont({ size: 16 })
         .fontColor(AppTheme.textPrimary)
-        .searchIcon({ color: AppTheme.textSecondary })
+        .searchIcon({ color: AppTheme.primary, size: 22 })
         .onChange((value: string) => {
           this.keyword = value;
         })
@@ -42,6 +65,7 @@ export struct LibraryView {
               .height(40)
               .padding({ left: 22, right: 22 })
               .enabled(!this.importing)
+              .stateEffect(false)
               .onClick(() => {
                 this.pickFolder();
               })
@@ -62,6 +86,7 @@ export struct LibraryView {
               .borderRadius(20)
               .height(40)
               .padding({ left: 22, right: 22 })
+              .stateEffect(false)
               .onClick(() => {
                 this.keyword = '';
               })
@@ -71,7 +96,13 @@ export struct LibraryView {
         Grid() {
           ForEach(this.filtered(), (game: Game) => {
             GridItem() {
-              GameCard({ game: game })
+              GameCard({
+                game: game,
+                onTap: () => {
+                  this.selectedGame = game;
+                  this.showGameSheet = true;
+                }
+              })
             }
           }, (game: Game) => game.id)
         }
@@ -81,6 +112,7 @@ export struct LibraryView {
         .columnsGap(12)
         .rowsGap(16)
         .scrollBar(BarState.Off)
+        .contentEndOffset(84)
       }
     }
     .width('100%')
@@ -88,9 +120,55 @@ export struct LibraryView {
     .padding({
       left: AppTheme.pagePadding,
       right: AppTheme.pagePadding,
-      top: 0,
-      bottom: 84
+      top: 0
     })
+    .bindSheet($$this.showGameSheet, this.gameActionSheet(), {
+      detents: [SheetSize.MEDIUM, SheetSize.LARGE],
+      preferType: SheetType.BOTTOM,
+      dragBar: true,
+      showClose: false,
+      scrollSizeMode: ScrollSizeMode.CONTINUOUS
+    })
+  }
+
+  @Builder
+  gameActionSheet() {
+    Column() {
+      List({ space: 8 }) {
+        ForEach(this.gameActions, (action: GameActionItem) => {
+          ListItem() {
+            SettingRow({
+              icon: action.icon,
+              title: action.label,
+              radius: AppTheme.radiusM,
+              onTap: () => {
+                this.onGameAction(action.key);
+              }
+            })
+          }
+        }, (action: GameActionItem) => action.label)
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding })
+      .scrollBar(BarState.Off)
+    }
+    .width('100%')
+    .height('100%')
+    .padding({
+      top: 20,
+      bottom: 20
+    })
+  }
+
+  private onGameAction(key: string): void {
+    if (key === 'launch') {
+      this.showGameSheet = false;
+      AppStorage.setOrCreate<string>('playerGameId', this.selectedGame.id);
+      router.pushUrl({ url: 'pages/Player' }).catch((err: BusinessError) => {
+        hilog.warn(DOMAIN, TAG, 'open player failed: %{public}s', JSON.stringify(err));
+      });
+    }
   }
 
   private filtered(): Game[] {

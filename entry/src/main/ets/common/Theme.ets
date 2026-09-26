@@ -23,6 +23,7 @@ export class AppTheme {
   static readonly radiusM: number = 14;
   static readonly radiusS: number = 10;
   static readonly gap: number = 12;
+  static readonly topBarGap: number = 14;
   static readonly pagePadding: number = 16;
 
   private static readonly covers: string[][] = [
