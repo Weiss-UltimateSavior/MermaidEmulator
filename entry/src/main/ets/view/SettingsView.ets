@@ -1,242 +1,168 @@
+import { picker } from '@kit.CoreFileKit';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppTheme } from '../common/Theme';
-import { Game } from '../model/Game';
-import { EngineCore } from '../model/Engine';
-import { EngineRegistry } from '../engine/EngineRegistry';
+import { PageTopBar } from '../components/CommonWidgets';
+import { GameFolderStore } from '../store/GameFolderStore';
 import { LibraryStore } from '../store/LibraryStore';
-import { SettingsStore } from '../store/SettingsStore';
-import { PageTopBar, SectionCard, SettingRow } from '../components/CommonWidgets';
+
+const DOMAIN: number = 0x4D45;
+const TAG: string = 'SettingsView';
 
 @Component
 export struct SettingsView {
-  @StorageLink('stg_autoCore') autoCore: boolean = true;
-  @StorageLink('stg_copyImport') copyImport: boolean = true;
-  @StorageLink('stg_defaultCore') defaultCore: string = 'artemis';
-  @StorageLink('stg_resolution') resolution: string = '跟随原始分辨率';
-  @StorageLink('stg_fps') fps: string = '60 FPS';
-  @StorageLink('stg_scaleMode') scaleMode: string = '保持比例';
-  @StorageLink('stg_volume') volume: number = 70;
-  @StorageLink('games') games: Game[] = [];
+  @StorageLink('gameFolders') gameFolders: string[] = [];
+  @State busy: boolean = false;
 
   build() {
     Scroll() {
-      Column({ space: 14 }) {
+      Column({ space: 18 }) {
         PageTopBar({ title: '设置' })
 
-        SectionCard({ title: '存储' }) {
-          Column() {
-            SettingRow({
-              icon: $r('sys.symbol.externaldrive'),
-              label: '存储位置',
-              value: '应用私有目录',
-              hint: '游戏数据与存档的默认位置',
-              showArrow: true,
-              onTap: () => {
-                this.getUIContext().getPromptAction().showToast({ message: '当前使用应用私有目录，暂不支持自定义' });
-              }
+        Column({ space: 10 }) {
+          Text('游戏文件夹')
+            .fontSize(19)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(AppTheme.textPrimary)
+          Text('添加目录后会递归扫描其中的 Artemis 游戏资源。')
+            .fontSize(12)
+            .fontColor(AppTheme.textSecondary)
+          Button(this.busy ? '正在选择或扫描…' : '添加游戏文件夹')
+            .width('100%')
+            .height(44)
+            .fontSize(14)
+            .fontColor(AppTheme.onPrimary)
+            .backgroundColor(AppTheme.primary)
+            .borderRadius(22)
+            .enabled(!this.busy)
+            .onClick(() => {
+              this.addGameFolder();
             })
-            Divider().color(AppTheme.border)
-            SettingRow({
-              icon: $r('sys.symbol.archivebox'),
-              label: '导入时复制到应用目录',
-              hint: '避免源文件被移动后无法启动'
-            }) {
-              Toggle({ type: ToggleType.Switch, isOn: this.copyImport })
-                .selectedColor(AppTheme.primary)
-                .onChange((isOn: boolean) => {
-                  this.copyImport = isOn;
-                  SettingsStore.persist();
-                })
-            }
-          }
         }
+        .width('100%')
+        .padding(16)
+        .backgroundColor(AppTheme.surface)
+        .borderRadius(AppTheme.radiusL)
 
-        SectionCard({ title: '内核' }) {
-          Column() {
-            SettingRow({
-              icon: $r('sys.symbol.square_stack_3d'),
-              label: '自动匹配内核',
-              hint: '按文件扩展名自动选择内核'
-            }) {
-              Toggle({ type: ToggleType.Switch, isOn: this.autoCore })
-                .selectedColor(AppTheme.primary)
-                .onChange((isOn: boolean) => {
-                  this.autoCore = isOn;
-                  SettingsStore.persist();
-                })
-            }
-            Divider().color(AppTheme.border)
-            Column() {
-              SettingRow({
-                icon: $r('sys.symbol.gamecontroller'),
-                label: '默认内核',
-                value: EngineRegistry.find(this.defaultCore).name,
-                hint: '自动匹配失败时使用',
-                showArrow: true
-              })
-            }
-            .bindMenu(this.coreMenu())
+        if (this.gameFolders.length === 0) {
+          Text('尚未添加游戏文件夹')
+            .width('100%')
+            .fontSize(13)
+            .fontColor(AppTheme.textTertiary)
+            .textAlign(TextAlign.Center)
+            .padding({ top: 12, bottom: 12 })
+        } else {
+          Column({ space: 10 }) {
+            ForEach(this.gameFolders, (folderPath: string) => {
+              this.folderRow(folderPath)
+            }, (folderPath: string) => folderPath)
           }
-        }
-
-        SectionCard({ title: '画面' }) {
-          Column() {
-            Column() {
-              SettingRow({
-                icon: $r('sys.symbol.display'),
-                label: '渲染分辨率',
-                value: this.resolution,
-                showArrow: true
-              })
-            }
-            .bindMenu(this.optionMenu('stg_resolution', ['跟随原始分辨率', '720p', '1080p', '2K'], this.resolution))
-
-            Divider().color(AppTheme.border)
-
-            Column() {
-              SettingRow({
-                icon: $r('sys.symbol.timer_circle_fill'),
-                label: '帧率上限',
-                value: this.fps,
-                showArrow: true
-              })
-            }
-            .bindMenu(this.optionMenu('stg_fps', ['跟随原始', '30 FPS', '60 FPS', '120 FPS'], this.fps))
-
-            Divider().color(AppTheme.border)
-
-            Column() {
-              SettingRow({
-                icon: $r('sys.symbol.uiwindow_split_1x2'),
-                label: '缩放模式',
-                value: this.scaleMode,
-                showArrow: true
-              })
-            }
-            .bindMenu(this.optionMenu('stg_scaleMode', ['保持比例', '拉伸铺满', '原始像素'], this.scaleMode))
-          }
-        }
-
-        SectionCard({ title: '音频' }) {
-          SettingRow({
-            icon: $r('sys.symbol.speaker_wave_3'),
-            label: '主音量',
-            value: `${this.volume}%`,
-            hint: '内核音频输出的全局音量'
-          }) {
-            Slider({
-              value: this.volume,
-              min: 0,
-              max: 100,
-              step: 1,
-              style: SliderStyle.InSet
-            })
-              .width(120)
-              .selectedColor(AppTheme.primary)
-              .trackColor(AppTheme.surfaceHigh)
-              .blockColor(AppTheme.textPrimary)
-              .onChange((value: number, mode: SliderChangeMode) => {
-                this.volume = Math.round(value);
-                if (mode === SliderChangeMode.End) {
-                  SettingsStore.persist();
-                }
-              })
-          }
-        }
-
-        SectionCard({ title: '数据' }) {
-          Column() {
-            SettingRow({
-              icon: $r('sys.symbol.list_bullet'),
-              label: '游戏库条目',
-              value: `${this.games.length} 条`
-            })
-            Divider().color(AppTheme.border)
-            SettingRow({
-              icon: $r('sys.symbol.trash'),
-              label: '清空游戏库',
-              hint: '仅移除库记录，不删除源文件',
-              showArrow: true,
-              onTap: () => {
-                this.confirmClear();
-              }
-            })
-          }
-        }
-
-        SectionCard({ title: '关于' }) {
-          Column() {
-            SettingRow({
-              icon: $r('sys.symbol.info_circle'),
-              label: '应用版本',
-              value: '1.0.0'
-            })
-            Divider().color(AppTheme.border)
-            SettingRow({
-              icon: $r('sys.symbol.square_stack_3d'),
-              label: '内核架构',
-              value: 'EngineCore v1'
-            })
-            Divider().color(AppTheme.border)
-            SettingRow({
-              icon: $r('sys.symbol.gamecontroller'),
-              label: '首批接入',
-              value: 'Artemis Engine'
-            })
-          }
+          .width('100%')
         }
       }
       .width('100%')
-      .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding, top: 0, bottom: 84 })
+      .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding, bottom: 100 })
     }
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Off)
   }
 
-  private optionMenu(key: string, options: string[], current: string): MenuElement[] {
-    return options.map((option: string) => {
-      const item: MenuElement = {
-        value: option === current ? `${option}（当前）` : option,
-        action: () => {
-          AppStorage.setOrCreate<string>(key, option);
-          SettingsStore.persist();
-        }
-      };
-      return item;
-    });
-  }
-
-  private coreMenu(): MenuElement[] {
-    return EngineRegistry.installed().map((core: EngineCore) => {
-      const item: MenuElement = {
-        value: core.id === this.defaultCore ? `${core.name}（当前）` : core.name,
-        action: () => {
-          this.defaultCore = core.id;
-          SettingsStore.persist();
-        }
-      };
-      return item;
-    });
-  }
-
-  private confirmClear(): void {
-    this.getUIContext().showAlertDialog({
-      title: '清空游戏库',
-      message: `将移除全部 ${this.games.length} 条游戏记录，源文件不会被删除。`,
-      autoCancel: true,
-      primaryButton: {
-        value: '取消',
-        action: () => {
-        }
-      },
-      secondaryButton: {
-        value: '清空',
-        fontColor: AppTheme.danger,
-        action: () => {
-          LibraryStore.clear();
-          this.getUIContext().getPromptAction().showToast({ message: '游戏库已清空' });
-        }
+  @Builder
+  folderRow(folderPath: string) {
+    Row({ space: 12 }) {
+      Stack() {
+        SymbolGlyph($r('sys.symbol.folder'))
+          .fontSize(20)
+          .fontColor([AppTheme.primary])
       }
-    });
+      .width(42)
+      .height(42)
+      .backgroundColor(AppTheme.alpha(AppTheme.primary, '18'))
+      .borderRadius(21)
+
+      Column({ space: 4 }) {
+        Text(GameFolderStore.displayName(folderPath))
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppTheme.textPrimary)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(folderPath)
+          .fontSize(10)
+          .fontColor(AppTheme.textTertiary)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      Column({ space: 8 }) {
+        Text('扫描')
+          .fontSize(12)
+          .fontColor(AppTheme.primary)
+          .onClick(() => {
+            this.rescanFolder(folderPath);
+          })
+        Text('移除')
+          .fontSize(12)
+          .fontColor(AppTheme.danger)
+          .onClick(() => {
+            LibraryStore.removeFolder(folderPath);
+          })
+      }
+      .alignItems(HorizontalAlign.Center)
+    }
+    .width('100%')
+    .padding(12)
+    .backgroundColor(AppTheme.surface)
+    .borderRadius(AppTheme.radiusM)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  private async addGameFolder(): Promise<void> {
+    if (this.busy) {
+      return;
+    }
+    this.busy = true;
+    try {
+      const context = this.getUIContext().getHostContext();
+      if (context === undefined) {
+        return;
+      }
+      const documentPicker = new picker.DocumentViewPicker(context);
+      const options = new picker.DocumentSelectOptions();
+      options.maxSelectNumber = 1;
+      options.selectMode = picker.DocumentSelectMode.FOLDER;
+      const uris: string[] = await documentPicker.select(options);
+      if (uris.length > 0) {
+        const added = await GameFolderStore.addAndScan(uris[0]);
+        const message = added > 0
+          ? `文件夹已添加，扫描到 ${added} 个新游戏`
+          : '文件夹已添加，没有发现新的游戏资源';
+        this.getUIContext().getPromptAction().showToast({ message: message });
+      }
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, 'add folder failed: %{public}s', JSON.stringify(err));
+      this.getUIContext().getPromptAction().showToast({ message: '添加或扫描文件夹失败' });
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  private async rescanFolder(folderPath: string): Promise<void> {
+    if (this.busy) {
+      return;
+    }
+    this.busy = true;
+    try {
+      const added = await GameFolderStore.scan(folderPath);
+      const message = added > 0 ? `扫描完成，新增 ${added} 个游戏` : '扫描完成，没有发现新游戏';
+      this.getUIContext().getPromptAction().showToast({ message: message });
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, 'rescan folder failed: %{public}s', JSON.stringify(err));
+      this.getUIContext().getPromptAction().showToast({ message: '扫描失败，请重新授权该文件夹' });
+    } finally {
+      this.busy = false;
+    }
   }
 }

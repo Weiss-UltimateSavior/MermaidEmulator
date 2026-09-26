@@ -6,19 +6,17 @@ import { EngineRegistry } from '../engine/EngineRegistry';
 @Component
 export struct GameCard {
   @ObjectLink game: Game;
-  onOpen: (game: Game) => void = () => {
-  };
 
   build() {
     Column({ space: 8 }) {
       Stack({ alignContent: Alignment.TopStart }) {
         Column()
           .width('100%')
-          .aspectRatio(0.74)
+          .height('100%')
           .borderRadius(AppTheme.radiusM)
           .linearGradient({ angle: 155, colors: AppTheme.coverGradient(this.game.title) })
 
-        Stack() {
+        Column() {
           Text(this.game.title.length > 0 ? this.game.title.substring(0, 1) : '?')
             .fontSize(42)
             .fontWeight(FontWeight.Bold)
@@ -26,6 +24,8 @@ export struct GameCard {
         }
         .width('100%')
         .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
 
         Row() {
           Text(EngineRegistry.find(this.game.engineId).shortName)
@@ -49,6 +49,9 @@ export struct GameCard {
         }
       }
       .width('100%')
+      .aspectRatio(0.74)
+      .borderRadius(AppTheme.radiusM)
+      .clip(true)
 
       Column({ space: 3 }) {
         Text(this.game.title)
@@ -68,7 +71,6 @@ export struct GameCard {
       .width('100%')
     }
     .width('100%')
-    .onClick(() => this.onOpen(this.game))
   }
 
   private subLine(): string {

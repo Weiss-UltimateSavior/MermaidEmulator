@@ -3,17 +3,11 @@ import { HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDesignKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { AppTheme } from '../common/Theme';
-import { Game } from '../model/Game';
-import { EngineCore } from '../model/Engine';
 import { LibraryStore } from '../store/LibraryStore';
-import { SettingsStore } from '../store/SettingsStore';
 import { LibraryView } from '../view/LibraryView';
 import { KernelView } from '../view/KernelView';
 import { SettingsView } from '../view/SettingsView';
 import { AppBackground } from '../components/AppBackground';
-import { GameDetailPage } from '../view/GameDetailPage';
-import { KernelDetailPage } from '../view/KernelDetailPage';
-import { PlayerPage } from '../view/PlayerPage';
 
 const DOMAIN: number = 0x4D45;
 const TAG: string = 'Index';
@@ -21,7 +15,6 @@ const TAG: string = 'Index';
 @Entry
 @Component
 struct Index {
-  private pathStack: NavPathStack = new NavPathStack();
   private tabsController: HdsTabsController = new HdsTabsController();
   private mainWindow: window.Window | null = null;
   private avoidCallback: ((data: window.AvoidAreaOptions) => void) | null = null;
@@ -32,7 +25,6 @@ struct Index {
     const context = this.getUIContext().getHostContext();
     if (context !== undefined) {
       LibraryStore.init(context);
-      SettingsStore.init(context);
     }
     this.setupSafeArea();
   }
@@ -69,96 +61,69 @@ struct Index {
     AppStorage.setOrCreate<number>('safeBottomVp', this.safeBottom);
   }
 
-  @Builder
-  PageMap(name: string) {
-    if (name === 'GameDetail') {
-      GameDetailPage()
-    } else if (name === 'KernelDetail') {
-      KernelDetailPage()
-    } else if (name === 'Player') {
-      PlayerPage()
-    }
-  }
-
   build() {
-    Navigation(this.pathStack) {
-      Stack() {
-        AppBackground()
+    Stack() {
+      AppBackground()
 
-        Column() {
-          HdsTabs({ barPosition: BarPosition.End, index: this.currentTab, controller: this.tabsController }) {
-          TabContent() {
-            LibraryView({
-              onOpenGame: (game: Game) => {
-                this.openGame(game);
-              }
-            })
-          }
-          .tabBar(this.GlassTabItem(0, $r('sys.symbol.square_grid_2x2')))
-
-          TabContent() {
-            KernelView({
-              onOpenKernel: (core: EngineCore) => {
-                this.openKernel(core);
-              }
-            })
-          }
-          .tabBar(this.GlassTabItem(1, $r('sys.symbol.gamecontroller')))
-
-          TabContent() {
-            SettingsView()
-          }
-          .tabBar(this.GlassTabItem(2, $r('sys.symbol.gearshape')))
-          }
-          .vertical(false)
-          .barPosition(BarPosition.End)
-          .barOverlap(true)
-          .scrollable(true)
-          .animationDuration(240)
-          .onChange((index: number) => {
-            this.currentTab = index;
-          })
-          .barFloatingStyle({
-            barWidth: {
-              smallWidth: 310,
-              mediumWidth: 380,
-              largeWidth: 440
-            },
-            barSideMargin: 0,
-            barBottomMargin: 14 + this.safeBottom,
-            gradientMask: {
-              maskColor: '#55CBD9F4',
-              maskHeight: 92
-            },
-            lightColor: '#A6E9FF',
-            systemMaterialEffect: {
-              materialType: hdsMaterial.MaterialType.IMMERSIVE,
-              materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE
-            }
-          })
-          .width('100%')
-          .height('100%')
+      HdsTabs({ barPosition: BarPosition.End, index: this.currentTab, controller: this.tabsController }) {
+        TabContent() {
+          LibraryView()
         }
-        .width('100%')
-        .height('100%')
+        .tabBar(this.GlassTabItem(0, $r('app.media.nav_game')))
+
+        TabContent() {
+          KernelView()
+        }
+        .tabBar(this.GlassTabItem(1, $r('app.media.nav_engine')))
+
+        TabContent() {
+          SettingsView()
+        }
+        .tabBar(this.GlassTabItem(2, $r('app.media.nav_settings')))
       }
+      .vertical(false)
+      .barPosition(BarPosition.End)
+      .barOverlap(true)
+      .scrollable(true)
+      .animationDuration(240)
+      .onChange((index: number) => {
+        this.currentTab = index;
+      })
+      .barFloatingStyle({
+        barWidth: {
+          smallWidth: 310,
+          mediumWidth: 380,
+          largeWidth: 440
+        },
+        barSideMargin: 0,
+        barBottomMargin: 14 + this.safeBottom,
+        gradientMask: {
+          maskColor: '#55CBD9F4',
+          maskHeight: 92
+        },
+        lightColor: '#A6E9FF',
+        systemMaterialEffect: {
+          materialType: hdsMaterial.MaterialType.IMMERSIVE,
+          materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE
+        }
+      })
       .width('100%')
       .height('100%')
-      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     }
-    .hideTitleBar(true)
-    .hideToolBar(true)
-    .mode(NavigationMode.Stack)
-    .navDestination(this.PageMap)
+    .width('100%')
+    .height('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .backgroundColor('#CBD9F4')
   }
 
   @Builder
   GlassTabItem(index: number, icon: Resource) {
     Column() {
-      SymbolGlyph(icon)
-        .fontSize(24)
-        .fontColor([this.currentTab === index ? AppTheme.primary : AppTheme.textSecondary])
+      Image(icon)
+        .width(36)
+        .height(36)
+        .objectFit(ImageFit.Contain)
+        .colorFilter(this.currentTab === index ? AppTheme.primary : AppTheme.textSecondary)
     }
     .justifyContent(FlexAlign.Center)
     .height(48)
@@ -170,11 +135,4 @@ struct Index {
     })
   }
 
-  private openGame(game: Game): void {
-    this.pathStack.pushPath(new NavPathInfo('GameDetail', game));
-  }
-
-  private openKernel(core: EngineCore): void {
-    this.pathStack.pushPath(new NavPathInfo('KernelDetail', core.id));
-  }
 }
