@@ -10,6 +10,7 @@ import { LibraryView } from '../view/LibraryView';
 import { KernelView } from '../view/KernelView';
 import { SettingsView } from '../view/SettingsView';
 import { AppBackground } from '../components/AppBackground';
+import { GlassTabItem } from '../components/GlassTabItem';
 
 const DOMAIN: number = 0x4D45;
 const TAG: string = 'Index';
@@ -20,7 +21,7 @@ struct Index {
   private tabsController: HdsTabsController = new HdsTabsController();
   private mainWindow: window.Window | null = null;
   private avoidCallback: ((data: window.AvoidAreaOptions) => void) | null = null;
-  @State currentTab: number = 0;
+  @State selectedTab: number = 0;
   @State safeBottom: number = 0;
   @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
 
@@ -72,29 +73,36 @@ struct Index {
     Stack() {
       AppBackground()
 
-      HdsTabs({ barPosition: BarPosition.End, index: this.currentTab, controller: this.tabsController }) {
+      // 不传 index：避免组件重建/属性变化时按 index 回跳（ArkUI 规定改 index 无动画，
+      // 且本运行时不支持 $$ 双向绑定）；当前页由 TabsController 管理，底栏高亮用 selectedTab
+      HdsTabs({ barPosition: BarPosition.End, controller: this.tabsController }) {
         TabContent() {
           LibraryView()
         }
-        .tabBar(this.GlassTabItem(0, $r('app.media.nav_game'), '游戏'))
+        .tabBar(this.bottomTab(0, $r('app.media.nav_game'), '游戏'))
 
         TabContent() {
           KernelView()
         }
-        .tabBar(this.GlassTabItem(1, $r('app.media.nav_engine'), '引擎'))
+        .tabBar(this.bottomTab(1, $r('app.media.nav_engine'), '引擎'))
 
         TabContent() {
           SettingsView()
         }
-        .tabBar(this.GlassTabItem(2, $r('app.media.nav_settings'), '设置'))
+        .tabBar(this.bottomTab(2, $r('app.media.nav_settings'), '设置'))
       }
       .vertical(false)
       .barPosition(BarPosition.End)
       .barOverlap(true)
       .scrollable(true)
       .animationDuration(240)
+      // 底栏高亮统一用 selectedTab 驱动（onSelected 在切换动画开始时触发，
+      // onChange 兜底）：点击高亮在 switchTab 里立即更新，滑动由这两个回调同步
+      .onSelected((index: number) => {
+        this.selectedTab = index;
+      })
       .onChange((index: number) => {
-        this.currentTab = index;
+        this.selectedTab = index;
       })
       .barFloatingStyle({
         barWidth: {
@@ -123,25 +131,26 @@ struct Index {
     .backgroundColor('#CBD9F4')
   }
 
-  @Builder
-  GlassTabItem(index: number, icon: Resource, label: string) {
-    Column({ space: 1 }) {
-      Image(icon)
-        .width(26)
-        .height(26)
-        .objectFit(ImageFit.Contain)
-        .colorFilter(this.currentTab === index ? this.themePrimary : AppTheme.textSecondary)
-      Text(label)
-        .fontSize(10)
-        .fontColor(this.currentTab === index ? this.themePrimary : AppTheme.textSecondary)
+  private switchTab(index: number): void {
+    if (index === this.selectedTab) {
+      return;
     }
-    .justifyContent(FlexAlign.Center)
-    .height(48)
-    .width('100%')
-    .alignItems(HorizontalAlign.Center)
-    .onClick(() => {
-      this.currentTab = index;
-      this.tabsController.changeIndex(index);
+    // 立即高亮；切换动画只经 TabsController.changeIndex（与滑动共用同一套
+    // 左右平移动画）。直接改 index 会按 ArkUI 规则“无动画”瞬切，故不可先改。
+    this.selectedTab = index;
+    this.tabsController.changeIndex(index);
+  }
+
+  @Builder
+  bottomTab(index: number, icon: Resource, label: string) {
+    GlassTabItem({
+      index: index,
+      icon: icon,
+      label: label,
+      selected: this.selectedTab === index,
+      onSelect: (target: number) => {
+        this.switchTab(target);
+      }
     })
   }
 
