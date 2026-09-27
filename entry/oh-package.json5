@@ -6,7 +6,8 @@
   "author": "",
   "license": "",
   "dependencies": {
-    "libartemishost.so": "file:./src/main/cpp/types/libartemishost"
+    "libartemishost.so": "file:./src/main/cpp/types/libartemishost",
+    "libkrkrsdl3.so": "file:./src/main/cpp/types/libkrkrsdl3"
   }
 }
 

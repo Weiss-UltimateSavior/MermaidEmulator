@@ -38,6 +38,7 @@
 - 原生内核位于 `entry/src/main/cpp`（CMake + NAPI，模块名 `artemishost`）；引擎源码以 `third_party/artemis-compat` 子模块固定提交，本地联调可用 `-DARTC_SOURCE_DIR=<path>` 指向工作副本。
 - Web 引擎（Tyrano）宿主位于 `pages/TyranoPlayer.ets`：ArkWeb + `onInterceptRequest` 提供 `http://127.0.0.1` 固定 origin 的本地资源服务（含 Range、入口注入），`javaScriptProxy`（`appJsInterface`）桥接存档；注入脚本在 `resources/rawfile/tyrano_hook.js`，存档沙箱在 `service/TyranoStore.ets`。
 - HarmonyOS 原生 GL 必须链接 `GLESv3`（真实实现在 `/system/lib64/libGLESv3.so`，`libGLESv2.so` 仅是 `/system/lib64/ndk` 下的桩，直接调用为空操作），并通过 `ARTC_GLES_TARGET` 传给自研引擎。
+- KiriKiri（krkrsdl3）宿主位于 `pages/KirikiriPlayer.ets`：XComponent(SURFACE) + EGL/GLES3 + OHAudio，NAPI 模块 `libkrkrsdl3.so`（源码为 `third_party/krkrsdl3` 子模块，依赖用 `tools/build-krkr-deps-ohos.sh` 本地生成到 `third_party/krkrsdl3-deps`，不入库）。
 - 引擎参数分全局与单游戏两级：全局参数在引擎页配置，单游戏覆盖在游戏卡片「引擎设置」中配置；单游戏优先，未设置项跟随全局，播放页按生效配置启动。两级配置共用 `EngineSettingsPanel`。
 - 游戏卡片「名称修改」仅修改游戏库中的显示名称，不重命名游戏目录；「删除游戏」仅移除游戏仓库记录与单游戏配置，不删除游戏目录、封面、存档等任何文件。
 - 页面间新增复用能力应优先抽取公共组件，避免重复实现页面标题栏和材质效果。

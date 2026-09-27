@@ -1,0 +1,108 @@
+# Generated from krkrsdl3_build/cmake/cmake_environ.txt (pin: krkrsdl3_build@66fb7d9); paths parameterized to ${KRKR_SOURCE_DIR}
+set(KRKRSDL_ENVIRON_PATH ${KRKR_SOURCE_DIR}/environ)
+
+# SDL版本选择子目录
+if(USE_SDL3)
+    set(KRKRSDL_SDL_NAME sdl3)
+else()
+    set(KRKRSDL_SDL_NAME sdl2)
+endif()
+
+# 1.命令行
+set(KRKRSDL_ENVIRON_CONSOLE_SRC
+    ${KRKRSDL_ENVIRON_PATH}/console/console_entry.cpp
+    )
+
+# 2.全量
+if(OHOS)
+    set(KRKRSDL_ENVIRON_SRC
+        ${KRKRSDL_ENVIRON_PATH}/Platform.cpp
+        ${KRKRSDL_ENVIRON_PATH}/ohos/ohos_core.cpp
+        ${KRKRSDL_ENVIRON_PATH}/ohos/ohos_dialog.cpp
+        ${KRKRSDL_ENVIRON_PATH}/ohos/ohos_utils.cpp
+        ${KRKRSDL_ENVIRON_PATH}/ohos/ohos_entry.cpp
+        )
+else()
+    set(KRKRSDL_ENVIRON_SRC
+        ${KRKRSDL_ENVIRON_PATH}/Platform.cpp
+        ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_dialog.cpp
+        ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_utils.cpp
+        ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_app.cpp
+        ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_entry.cpp
+        )
+endif()
+
+if(ANDROID)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/android/android_core.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/unix/unix_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/unix/unix_sysinfo.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_thread.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_audio.cpp)
+elseif(LINUX)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/linux/linux_core.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/unix/unix_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/unix/unix_sysinfo.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_input.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_thread.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_audio.cpp)
+elseif(EMSCRIPTEN)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/wasm/wasm_core.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/wasm/wasm_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/unix/unix_thread.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/wasm/wasm_audio_al.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_input.cpp)
+elseif(WINDOWS)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/windows/windows_core.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_input.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_thread.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_audio.cpp)
+elseif(OHOS)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/ohos/ohos_core.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/unix/unix_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/unix/unix_sysinfo.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/ohos/ohos_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/ohos/ohos_input.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/ohos/ohos_thread.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/ohos/ohos_audio.cpp)
+elseif(MACOS)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/apple/apple_core.mm)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/macos/macos_core.mm)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/apple/apple_video.mm)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/unix/unix_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_input.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_thread.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_audio.cpp)
+elseif(IOS)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/apple/apple_core.mm)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/iOS/ios_core.mm)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/apple/apple_video.mm)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/unix/unix_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_file.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_input.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_thread.cpp)
+    list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/${KRKRSDL_SDL_NAME}/${KRKRSDL_SDL_NAME}_audio.cpp)
+else()
+    message(FATAL_ERROR "unsupported: ${CMAKE_SYSTEM_NAME}")
+endif()
+
+if(NOT USE_FFMPEG)
+    if(ANDROID)
+        list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/android/android_video.cpp)
+    elseif(EMSCRIPTEN)
+        list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/wasm/wasm_video.cpp)
+    elseif(WINDOWS)
+        list(APPEND KRKRSDL_ENVIRON_SRC ${KRKRSDL_ENVIRON_PATH}/windows/windows_video.cpp)
+    elseif(OHOS)
+        # OHOS uses FFmpeg for video; stubs already in ohos_core.cpp
+    elseif(IOS)
+        # iOS 当前提供空视频后端，调用方会回退到 NullLayerPlayer / NullOverlayPlayer。
+    elseif(MACOS)
+        # macOS 当前提供空视频后端，调用方会回退到 NullLayerPlayer / NullOverlayPlayer。
+    else()
+        message(FATAL_ERROR "unsupported: ${CMAKE_SYSTEM_NAME}")
+    endif()
+endif()

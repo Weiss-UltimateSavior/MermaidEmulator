@@ -227,7 +227,7 @@ export struct LibraryView {
     if (key === 'launch') {
       const engineId = this.selectedGame.engineId;
       const webEngines: string[] = ['tyrano', 'rpgm_mv', 'rpgm_mz', 'webother'];
-      if (engineId !== 'artemis' && !webEngines.includes(engineId)) {
+      if (engineId !== 'artemis' && engineId !== 'kirikiri' && !webEngines.includes(engineId)) {
         this.getUIContext().getPromptAction().showToast({
           message: '该引擎运行时尚在规划中，暂不支持启动'
         });
@@ -235,7 +235,12 @@ export struct LibraryView {
       }
       this.showGameSheet = false;
       AppStorage.setOrCreate<string>('playerGameId', this.selectedGame.id);
-      const url = webEngines.includes(engineId) ? 'pages/WebPlayer' : 'pages/Player';
+      let url = 'pages/Player';
+      if (webEngines.includes(engineId)) {
+        url = 'pages/WebPlayer';
+      } else if (engineId === 'kirikiri') {
+        url = 'pages/KirikiriPlayer';
+      }
       router.pushUrl({ url: url }).catch((err: BusinessError) => {
         hilog.warn(DOMAIN, TAG, 'open player failed: %{public}s', JSON.stringify(err));
       });

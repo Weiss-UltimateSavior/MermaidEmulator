@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(mermaid_artemis_host CXX)
+project(mermaid_host CXX C)
 
 if(NOT DEFINED ARTC_SOURCE_DIR OR ARTC_SOURCE_DIR STREQUAL "")
   set(ARTC_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/artemis-compat")
@@ -40,3 +40,8 @@ target_link_libraries(artemishost PRIVATE
   libnative_window.so
   libhilog_ndk.z.so
 )
+
+option(MERMAID_ENABLE_KRKR "Build KiriKiri (krkrsdl3) engine" ON)
+if(MERMAID_ENABLE_KRKR)
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/krkr" "${CMAKE_CURRENT_BINARY_DIR}/krkr")
+endif()

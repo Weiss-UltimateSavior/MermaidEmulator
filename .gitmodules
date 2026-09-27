@@ -1,3 +1,6 @@
 [submodule "third_party/artemis-compat"]
 	path = third_party/artemis-compat
 	url = https://github.com/Weiss-UltimateSavior/artemis-compat
+[submodule "third_party/krkrsdl3"]
+	path = third_party/krkrsdl3
+	url = https://github.com/Weiss-UltimateSavior/krkrsdl3

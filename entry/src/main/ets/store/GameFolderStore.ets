@@ -177,6 +177,8 @@ export class GameFolderStore {
     let hasRpgMzCore = false;
     let hasTyranoDir = false;
     let hasAppAsar = false;
+    let hasXp3 = false;
+    let hasStartupTjs = false;
 
     subPaths.forEach((candidate: string) => {
       const subPath = candidate.toLowerCase();
@@ -211,6 +213,12 @@ export class GameFolderStore {
           hasPfsPatch = true;
         }
       }
+      if (name.endsWith('.xp3')) {
+        hasXp3 = true;
+      }
+      if (subPath === 'startup.tjs') {
+        hasStartupTjs = true;
+      }
       if (name.endsWith('.obb')) {
         hasObbLikeFile = true;
       }
@@ -227,6 +235,9 @@ export class GameFolderStore {
     }
     if (hasIndex && hasRpgMzCore) {
       return 'rpgm_mz';
+    }
+    if (hasXp3 || hasStartupTjs) {
+      return 'kirikiri';
     }
     if (hasAppAsar) {
       return 'tyrano';
@@ -253,7 +264,8 @@ export class GameFolderStore {
       name === 'rmmz_core.js' || name === 'app.asar') {
       return true;
     }
-    if (name.endsWith('.pfs') || name.endsWith('.obb') || name.endsWith('.tjs')) {
+    if (name.endsWith('.pfs') || name.endsWith('.obb') || name.endsWith('.tjs') ||
+      name.endsWith('.xp3')) {
       return true;
     }
     if (GameFolderStore.isPfsPatch(name)) {

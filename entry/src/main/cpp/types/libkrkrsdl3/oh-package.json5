@@ -1,0 +1,6 @@
+{
+  "name": "libkrkrsdl3.so",
+  "types": "./index.d.ts",
+  "version": "1.0.0",
+  "description": "KiriKiri（krkrsdl3）引擎 OHOS 宿主（NAPI）类型声明"
+}

@@ -3,6 +3,7 @@
     "pages/Index",
     "pages/Player",
     "pages/WebPlayer",
+    "pages/KirikiriPlayer",
     "pages/CoverCrop"
   ]
 }

@@ -63,6 +63,14 @@ export struct EngineSettingsPanel {
               })
             }
           }
+        } else if (this.engineId === 'kirikiri') {
+          ListItem() {
+            Text('KiriKiri 一期使用游戏内菜单设置，暂无宿主引擎参数。')
+              .fontSize(12)
+              .fontColor(AppTheme.textTertiary)
+              .width('100%')
+              .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding, top: 4 })
+          }
         } else {
           ListItem() {
             this.paramRow('屏幕方向', 'orientation')
