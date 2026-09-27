@@ -106,6 +106,13 @@ struct WebPlayer {
     this.restoreAppWindow();
   }
 
+  onBackPress(): boolean {
+    if (this.menuVisible) {
+      this.menuVisible = false;
+    }
+    return true;
+  }
+
   private setupGameWindow(context: Context): void {
     const preferred = this.config.orientation === '自动旋转'
       ? window.Orientation.AUTO_ROTATION_LANDSCAPE
@@ -169,6 +176,11 @@ struct WebPlayer {
         const padContent = await context.resourceManager.getRawFileContent('touch_pad.js');
         const decoder = util.TextDecoder.create('utf-8');
         script += '\n' + decoder.decodeToString(padContent);
+      }
+      if (this.engineId === 'rpgm_mv' || this.engineId === 'rpgm_mz') {
+        const mouseContent = await context.resourceManager.getRawFileContent('virtual_mouse.js');
+        const decoder = util.TextDecoder.create('utf-8');
+        script += '\n' + decoder.decodeToString(mouseContent);
       }
     } catch (err) {
       hilog.warn(DOMAIN, TAG, 'load hook failed: %{public}s', JSON.stringify(err));
@@ -420,7 +432,8 @@ struct WebPlayer {
               this.menuButton('自动', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.ftag) TYRANO.kag.ftag.startTag("autostart", {});')
               this.menuButton('快进', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.ftag) TYRANO.kag.ftag.startTag("skipstart", {});')
             }
-            this.menuButton('结束', 'if ("appJsInterface" in window) appJsInterface.closeGame();')
+            this.menuButton('结束',
+              `if ("${this.bridgeName}" in window) ${this.bridgeName}.closeGame();`)
           }
           .padding(6)
           .backgroundColor('#CC000000')

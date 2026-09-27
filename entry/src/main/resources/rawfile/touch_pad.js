@@ -1585,4 +1585,4 @@ window.addEventListener('load', () => {
     if (editMode) refreshEditConfig()
     else layout()
   }, 150))
-})
+});
