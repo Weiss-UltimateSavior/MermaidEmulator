@@ -7,6 +7,7 @@ import { AppTheme } from '../common/Theme';
 import { Game } from '../model/Game';
 import { GameSidebar, GameSidebarItem } from '../components/GameSidebar';
 import { LibraryStore } from '../store/LibraryStore';
+import { SettingsStore } from '../store/SettingsStore';
 
 const DOMAIN: number = 0x4D45;
 const TAG: string = 'Player';
@@ -45,17 +46,15 @@ struct Player {
     } catch (err) {
       hilog.warn(DOMAIN, TAG, 'create save dir failed: %{public}s', JSON.stringify(err));
     }
-    const osId = AppStorage.get<string>('stg_engineOs') ?? 'windows';
-    const scale = AppStorage.get<string>('stg_engineScale') ?? '跟随游戏';
-    const sidecut = scale === '铺满裁剪' ? 1 : (scale === '保持比例' ? 0 : -1);
-    const vsync = AppStorage.get<boolean>('stg_engineVsync') ?? true;
+    const config = SettingsStore.artemisConfig(game.id);
+    const sidecut = config.scale === '铺满裁剪' ? 1 : (config.scale === '保持比例' ? 0 : -1);
     try {
       artemisHost.start({
         dataDir: game.path,
         saveDir: saveDir,
-        osId: osId,
+        osId: config.osId,
         sidecut: sidecut,
-        vsync: vsync
+        vsync: config.vsync
       });
     } catch (err) {
       hilog.error(DOMAIN, TAG, 'start failed: %{public}s', JSON.stringify(err));

@@ -78,7 +78,7 @@ struct WebPlayer {
     this.gameTitle = game.title;
     this.engineId = game.engineId;
     this.bridgeName = this.engineId === 'tyrano' ? 'appJsInterface' : 'saveDataManager';
-    this.config = SettingsStore.webConfig(this.engineId);
+    this.config = SettingsStore.webConfigFor(game.id, this.engineId);
     this.origin = `${HOST}:${this.config.port}`;
     const context = this.getUIContext().getHostContext();
     if (context === undefined) {

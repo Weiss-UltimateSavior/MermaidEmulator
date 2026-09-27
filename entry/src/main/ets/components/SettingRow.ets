@@ -4,7 +4,6 @@ import { AppTheme } from '../common/Theme';
 export struct SettingRow {
   icon: Resource = $r('sys.symbol.folder');
   iconImage: Resource | null = null;
-  tintIconImage: boolean = false;
   showIcon: boolean = true;
   @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
   title: string = '';
@@ -24,18 +23,11 @@ export struct SettingRow {
     Row({ space: 12 }) {
       if (this.showIcon) {
         if (this.iconImage !== null) {
-          if (this.tintIconImage) {
-            Image(this.iconImage)
-              .width(24)
-              .height(24)
-              .objectFit(ImageFit.Contain)
-              .colorFilter(this.themePrimary)
-          } else {
-            Image(this.iconImage)
-              .width(24)
-              .height(24)
-              .objectFit(ImageFit.Contain)
-          }
+          Image(this.iconImage)
+            .width(24)
+            .height(24)
+            .objectFit(ImageFit.Contain)
+            .colorFilter(this.themePrimary)
         } else {
           SymbolGlyph(this.icon)
             .fontSize(24)

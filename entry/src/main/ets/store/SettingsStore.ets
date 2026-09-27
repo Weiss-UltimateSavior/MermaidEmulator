@@ -16,6 +16,24 @@ export class WebEngineConfig {
   port: number = WebEngineConfig.DEFAULT_PORT;
 }
 
+export class GameEngineConfig {
+  os: string = '';
+  scale: string = '';
+  orientation: string = '';
+  vsync: string = '';
+  network: string = '';
+  volume: string = '';
+  port: string = '';
+  touchPad: string = '';
+}
+
+export class ArtemisConfig {
+  osId: string = 'windows';
+  scale: string = '跟随游戏';
+  orientation: string = '固定横屏';
+  vsync: boolean = true;
+}
+
 export class SettingsStore {
   private static pref: preferences.Preferences | null = null;
 
@@ -87,6 +105,111 @@ export class SettingsStore {
       return value;
     }
     return WebEngineConfig.DEFAULT_PORT;
+  }
+
+  static gameEngineConfig(gameId: string): GameEngineConfig {
+    const config = new GameEngineConfig();
+    const pref = SettingsStore.pref;
+    if (pref === null || gameId.length === 0) {
+      return config;
+    }
+    try {
+      const raw = pref.getSync(`stg_game_${gameId}`, '');
+      const text = typeof raw === 'string' ? raw : '';
+      if (text.length === 0) {
+        return config;
+      }
+      const parsed = JSON.parse(text) as GameEngineConfig;
+      if (typeof parsed.os === 'string') {
+        config.os = parsed.os;
+      }
+      if (typeof parsed.scale === 'string') {
+        config.scale = parsed.scale;
+      }
+      if (typeof parsed.orientation === 'string') {
+        config.orientation = parsed.orientation;
+      }
+      if (typeof parsed.vsync === 'string') {
+        config.vsync = parsed.vsync;
+      }
+      if (typeof parsed.network === 'string') {
+        config.network = parsed.network;
+      }
+      if (typeof parsed.volume === 'string') {
+        config.volume = parsed.volume;
+      }
+      if (typeof parsed.port === 'string') {
+        config.port = parsed.port;
+      }
+      if (typeof parsed.touchPad === 'string') {
+        config.touchPad = parsed.touchPad;
+      }
+    } catch (err) {
+      return config;
+    }
+    return config;
+  }
+
+  static setGameEngineConfig(gameId: string, config: GameEngineConfig): void {
+    const pref = SettingsStore.pref;
+    if (pref === null || gameId.length === 0) {
+      return;
+    }
+    try {
+      pref.putSync(`stg_game_${gameId}`, JSON.stringify(config));
+      pref.flush((err) => {
+        if (err) {
+          hilog.warn(DOMAIN, TAG, 'game engine config flush failed: %{public}s', JSON.stringify(err));
+        }
+      });
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, 'game engine config persist failed: %{public}s', JSON.stringify(err));
+    }
+  }
+
+  static artemisConfig(gameId: string): ArtemisConfig {
+    const config = new ArtemisConfig();
+    config.osId = AppStorage.get<string>('stg_engineOs') ?? 'windows';
+    config.scale = AppStorage.get<string>('stg_engineScale') ?? '跟随游戏';
+    config.orientation = AppStorage.get<string>('stg_engineOrientation') ?? '固定横屏';
+    config.vsync = AppStorage.get<boolean>('stg_engineVsync') ?? true;
+    const overrides = SettingsStore.gameEngineConfig(gameId);
+    if (overrides.os.length > 0) {
+      config.osId = overrides.os;
+    }
+    if (overrides.scale.length > 0) {
+      config.scale = overrides.scale;
+    }
+    if (overrides.orientation.length > 0) {
+      config.orientation = overrides.orientation;
+    }
+    if (overrides.vsync === 'true' || overrides.vsync === 'false') {
+      config.vsync = overrides.vsync === 'true';
+    }
+    return config;
+  }
+
+  static webConfigFor(gameId: string, engineId: string): WebEngineConfig {
+    const config = SettingsStore.webConfig(engineId);
+    const overrides = SettingsStore.gameEngineConfig(gameId);
+    if (overrides.orientation === '固定横屏' || overrides.orientation === '自动旋转') {
+      config.orientation = overrides.orientation;
+    }
+    if (overrides.network === 'true' || overrides.network === 'false') {
+      config.network = overrides.network === 'true';
+    }
+    if (overrides.touchPad === 'true' || overrides.touchPad === 'false') {
+      config.touchPad = overrides.touchPad === 'true';
+    }
+    const volume = parseInt(overrides.volume, 10);
+    if (!isNaN(volume) && volume >= 0 && volume <= 100) {
+      config.volume = volume;
+    }
+    const port = parseInt(overrides.port, 10);
+    if (!isNaN(port) && port >= WebEngineConfig.MIN_PORT && port <= WebEngineConfig.MAX_PORT) {
+      config.port = port;
+    }
+    return config;
   }
 
   static setWebConfig(engineId: string, config: WebEngineConfig): void {

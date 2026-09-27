@@ -1,4 +1,5 @@
 import { picker } from '@kit.CoreFileKit';
+import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { router } from '@kit.ArkUI';
@@ -7,6 +8,7 @@ import { Game } from '../model/Game';
 import { GameFolderStore } from '../store/GameFolderStore';
 import { GameCard } from '../components/GameCard';
 import { EmptyState, PageTopBar } from '../components/CommonWidgets';
+import { EngineSettingsPanel } from '../components/EngineSettingsPanel';
 import { SettingRow } from '../components/SettingRow';
 
 const DOMAIN: number = 0x4D45;
@@ -14,11 +16,13 @@ const TAG: string = 'LibraryView';
 
 class GameActionItem {
   icon: Resource;
+  image: Resource | null;
   label: string;
   key: string;
 
-  constructor(icon: Resource, label: string, key: string) {
+  constructor(icon: Resource, label: string, key: string, image: Resource | null = null) {
     this.icon = icon;
+    this.image = image;
     this.label = label;
     this.key = key;
   }
@@ -30,14 +34,19 @@ export struct LibraryView {
   @State keyword: string = '';
   @State importing: boolean = false;
   @State showGameSheet: boolean = false;
+  @State sheetMode: string = 'actions';
   @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
   @State selectedGame: Game = Game.placeholder();
   private gameActions: GameActionItem[] = [
     new GameActionItem($r('sys.symbol.play_fill'), '启动游戏', 'launch'),
-    new GameActionItem($r('sys.symbol.picture_and_pencil'), '修改封面', 'cover'),
-    new GameActionItem($r('sys.symbol.gearshape'), '引擎设置', 'engine'),
-    new GameActionItem($r('sys.symbol.rename'), '名称修改', 'rename'),
-    new GameActionItem($r('sys.symbol.trash'), '删除游戏', 'delete')
+    new GameActionItem($r('sys.symbol.picture_and_pencil'), '修改封面', 'cover',
+      $r('app.media.setting_scraper')),
+    new GameActionItem($r('sys.symbol.gearshape'), '引擎设置', 'engine',
+      $r('app.media.action_engine')),
+    new GameActionItem($r('sys.symbol.rename'), '名称修改', 'rename',
+      $r('app.media.action_rename')),
+    new GameActionItem($r('sys.symbol.trash'), '删除游戏', 'delete',
+      $r('app.media.action_delete'))
   ];
 
   build() {
@@ -101,6 +110,7 @@ export struct LibraryView {
                 game: game,
                 onTap: () => {
                   this.selectedGame = game;
+                  this.sheetMode = 'actions';
                   this.showGameSheet = true;
                 }
               })
@@ -123,13 +133,29 @@ export struct LibraryView {
       right: AppTheme.pagePadding,
       top: 0
     })
-    .bindSheet($$this.showGameSheet, this.gameActionSheet(), {
+    .bindSheet($$this.showGameSheet, this.sheetContent(), {
       detents: [SheetSize.MEDIUM, SheetSize.LARGE],
       preferType: SheetType.BOTTOM,
       dragBar: true,
       showClose: false,
       scrollSizeMode: ScrollSizeMode.CONTINUOUS
     })
+  }
+
+  @Builder
+  sheetContent() {
+    if (this.sheetMode === 'engine') {
+      EngineSettingsPanel({
+        engineId: this.selectedGame.engineId,
+        gameId: this.selectedGame.id,
+        showBack: true,
+        onBack: () => {
+          this.sheetMode = 'actions';
+        }
+      })
+    } else {
+      this.gameActionSheet()
+    }
   }
 
   @Builder
@@ -140,6 +166,7 @@ export struct LibraryView {
           ListItem() {
             SettingRow({
               icon: action.icon,
+              iconImage: action.image,
               title: action.label,
               radius: AppTheme.radiusM,
               onTap: () => {
@@ -163,6 +190,15 @@ export struct LibraryView {
   }
 
   private onGameAction(key: string): void {
+    if (key === 'engine') {
+      this.sheetMode = 'engine';
+      return;
+    }
+    if (key === 'cover') {
+      this.showGameSheet = false;
+      this.pickCover();
+      return;
+    }
     if (key === 'launch') {
       const engineId = this.selectedGame.engineId;
       const webEngines: string[] = ['tyrano', 'rpgm_mv', 'rpgm_mz', 'webother'];
@@ -178,6 +214,26 @@ export struct LibraryView {
       router.pushUrl({ url: url }).catch((err: BusinessError) => {
         hilog.warn(DOMAIN, TAG, 'open player failed: %{public}s', JSON.stringify(err));
       });
+    }
+  }
+
+  private async pickCover(): Promise<void> {
+    try {
+      const picker = new photoAccessHelper.PhotoViewPicker();
+      const options = new photoAccessHelper.PhotoSelectOptions();
+      options.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
+      options.maxSelectNumber = 1;
+      const result = await picker.select(options);
+      if (result.photoUris.length === 0) {
+        return;
+      }
+      AppStorage.setOrCreate<string>('coverCropUri', result.photoUris[0]);
+      AppStorage.setOrCreate<string>('coverCropGameId', this.selectedGame.id);
+      router.pushUrl({ url: 'pages/CoverCrop' }).catch((err: BusinessError) => {
+        hilog.warn(DOMAIN, TAG, 'open cover crop failed: %{public}s', JSON.stringify(err));
+      });
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, 'pick cover canceled or failed: %{public}s', JSON.stringify(err));
     }
   }
 
