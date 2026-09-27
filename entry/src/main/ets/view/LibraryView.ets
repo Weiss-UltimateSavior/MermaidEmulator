@@ -30,6 +30,7 @@ export struct LibraryView {
   @State keyword: string = '';
   @State importing: boolean = false;
   @State showGameSheet: boolean = false;
+  @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
   @State selectedGame: Game = Game.placeholder();
   private gameActions: GameActionItem[] = [
     new GameActionItem($r('sys.symbol.play_fill'), '启动游戏', 'launch'),
@@ -49,7 +50,7 @@ export struct LibraryView {
         .backgroundColor(AppTheme.surface)
         .textFont({ size: 16 })
         .fontColor(AppTheme.textPrimary)
-        .searchIcon({ color: AppTheme.primary, size: 22 })
+        .searchIcon({ color: this.themePrimary, size: 22 })
         .onChange((value: string) => {
           this.keyword = value;
         })
@@ -60,7 +61,7 @@ export struct LibraryView {
             Button(this.importing ? '正在扫描…' : '选择游戏文件夹')
               .fontSize(14)
               .fontColor(AppTheme.onPrimary)
-              .backgroundColor(AppTheme.primary)
+              .backgroundColor(this.themePrimary)
               .borderRadius(20)
               .height(40)
               .padding({ left: 22, right: 22 })
@@ -163,9 +164,17 @@ export struct LibraryView {
 
   private onGameAction(key: string): void {
     if (key === 'launch') {
+      const engineId = this.selectedGame.engineId;
+      if (engineId !== 'artemis' && engineId !== 'tyrano') {
+        this.getUIContext().getPromptAction().showToast({
+          message: '该引擎运行时尚在规划中，暂不支持启动'
+        });
+        return;
+      }
       this.showGameSheet = false;
       AppStorage.setOrCreate<string>('playerGameId', this.selectedGame.id);
-      router.pushUrl({ url: 'pages/Player' }).catch((err: BusinessError) => {
+      const url = engineId === 'tyrano' ? 'pages/TyranoPlayer' : 'pages/Player';
+      router.pushUrl({ url: url }).catch((err: BusinessError) => {
         hilog.warn(DOMAIN, TAG, 'open player failed: %{public}s', JSON.stringify(err));
       });
     }

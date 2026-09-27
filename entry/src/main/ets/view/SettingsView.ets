@@ -35,7 +35,12 @@ export struct SettingsView {
   @StorageLink('stg_coverOnlyMissing') coverOnlyMissing: boolean = true;
   @State busy: boolean = false;
   @State showSheet: boolean = false;
+  @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
   @State activeSheet: string = '';
+  @State wheelHue: number = 197;
+  @State wheelBrightness: number = 85;
+  private wheelSettings: RenderingContextSettings = new RenderingContextSettings(true);
+  private wheelCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.wheelSettings);
   @State scraping: boolean = false;
   @State scrapeDone: number = 0;
   @State scrapeTotal: number = 0;
@@ -90,6 +95,10 @@ export struct SettingsView {
   sheetContent() {
     if (this.activeSheet === 'scraper') {
       this.scraperSheet()
+    } else if (this.activeSheet === 'appearance') {
+      this.appearanceSheet()
+    } else if (this.activeSheet === 'wheel') {
+      this.wheelSheet()
     } else {
       this.folderSheet()
     }
@@ -107,7 +116,7 @@ export struct SettingsView {
             radius: AppTheme.radiusM
           }) {
             Toggle({ type: ToggleType.Switch, isOn: this.coverVndb })
-              .selectedColor(AppTheme.primary)
+              .selectedColor(this.themePrimary)
               .onChange((isOn: boolean) => {
                 this.coverVndb = isOn;
                 SettingsStore.persist();
@@ -123,7 +132,7 @@ export struct SettingsView {
             radius: AppTheme.radiusM
           }) {
             Toggle({ type: ToggleType.Switch, isOn: this.coverSteam })
-              .selectedColor(AppTheme.primary)
+              .selectedColor(this.themePrimary)
               .onChange((isOn: boolean) => {
                 this.coverSteam = isOn;
                 SettingsStore.persist();
@@ -139,7 +148,7 @@ export struct SettingsView {
             radius: AppTheme.radiusM
           }) {
             Toggle({ type: ToggleType.Switch, isOn: this.coverBangumi })
-              .selectedColor(AppTheme.primary)
+              .selectedColor(this.themePrimary)
               .onChange((isOn: boolean) => {
                 this.coverBangumi = isOn;
                 SettingsStore.persist();
@@ -155,7 +164,7 @@ export struct SettingsView {
             radius: AppTheme.radiusM
           }) {
             Toggle({ type: ToggleType.Switch, isOn: this.coverOnlyMissing })
-              .selectedColor(AppTheme.primary)
+              .selectedColor(this.themePrimary)
               .onChange((isOn: boolean) => {
                 this.coverOnlyMissing = isOn;
                 SettingsStore.persist();
@@ -169,7 +178,7 @@ export struct SettingsView {
               Row({ space: 12 }) {
                 SymbolGlyph($r('sys.symbol.arrow_down_circle'))
                   .fontSize(24)
-                  .fontColor([AppTheme.primary])
+                  .fontColor([this.themePrimary])
                 Text(this.scraping ? '正在刮削封面' : '刮削完成')
                   .fontSize(16)
                   .fontColor(AppTheme.textPrimary)
@@ -183,7 +192,7 @@ export struct SettingsView {
               Progress({ value: this.scrapeDone, total: Math.max(this.scrapeTotal, 1), type: ProgressType.Linear })
                 .width('100%')
                 .style({ strokeWidth: 6 })
-                .color(AppTheme.primary)
+                .color(this.themePrimary)
                 .backgroundColor(AppTheme.surfaceAlt)
                 .borderRadius(3)
 
@@ -218,7 +227,7 @@ export struct SettingsView {
           .height(44)
           .fontSize(14)
           .fontColor(AppTheme.onPrimary)
-          .backgroundColor(AppTheme.primary)
+          .backgroundColor(this.themePrimary)
           .borderRadius(22)
           .enabled(!this.scraping)
           .stateEffect(false)
@@ -326,6 +335,336 @@ export struct SettingsView {
       this.activeSheet = 'scraper';
       this.showSheet = true;
     }
+    if (key === 'appearance') {
+      this.activeSheet = 'appearance';
+      this.showSheet = true;
+    }
+  }
+
+  @Builder
+  appearanceSheet() {
+    Column() {
+      List({ space: 8 }) {
+        ListItem() {
+          Row({ space: 10 }) {
+            Text('主题色')
+              .fontSize(16)
+              .fontColor(AppTheme.textPrimary)
+              .layoutWeight(1)
+            Text(this.themePrimary.toUpperCase())
+              .fontSize(14)
+              .fontColor(AppTheme.textSecondary)
+            SymbolGlyph($r('sys.symbol.chevron_right'))
+              .fontSize(18)
+              .fontColor([AppTheme.textTertiary])
+          }
+          .width('100%')
+          .height(56)
+          .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding })
+          .backgroundColor(AppTheme.surface)
+          .borderRadius(AppTheme.radiusM)
+          .clickEffect(null)
+          .hoverEffect(HoverEffect.None)
+          .onClick(() => {
+            this.syncWheelFromTheme();
+            this.activeSheet = 'wheel';
+          })
+        }
+
+        ListItem() {
+          Text('请选择有彩度的颜色；透明、黑、白、灰不适用为主题色。')
+            .fontSize(12)
+            .fontColor(AppTheme.textTertiary)
+            .width('100%')
+            .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding, top: 4 })
+        }
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding })
+      .scrollBar(BarState.Off)
+    }
+    .width('100%')
+    .height('100%')
+    .padding({
+      top: 20,
+      bottom: 20
+    })
+  }
+
+  @Builder
+  wheelSheet() {
+    Column({ space: 12 }) {
+      List({ space: 8 }) {
+        ListItem() {
+          Column({ space: 14 }) {
+            Text('色调轮盘')
+              .fontSize(16)
+              .fontColor(AppTheme.textPrimary)
+              .width('100%')
+
+            Stack() {
+              Canvas(this.wheelCtx)
+                .width(200)
+                .height(200)
+                .onReady(() => {
+                  this.drawWheel();
+                })
+                .onTouch((event: TouchEvent) => {
+                  const touch = event.touches.length > 0 ? event.touches[0] : null;
+                  if (touch === null) {
+                    return;
+                  }
+                  if (event.type === TouchType.Down || event.type === TouchType.Move) {
+                    this.pickFromWheel(touch.x, touch.y);
+                  }
+                })
+            }
+            .width('100%')
+
+            Row({ space: 12 }) {
+              Column()
+                .width(28)
+                .height(28)
+                .borderRadius(14)
+                .backgroundColor(this.themePrimary)
+              Text(this.themePrimary.toUpperCase())
+                .fontSize(14)
+                .fontColor(AppTheme.textSecondary)
+                .layoutWeight(1)
+            }
+            .width('100%')
+
+            Row({ space: 12 }) {
+              Text('明度')
+                .fontSize(14)
+                .fontColor(AppTheme.textPrimary)
+              Slider({ value: this.wheelBrightness, min: 25, max: 100, step: 1 })
+                .layoutWeight(1)
+                .selectedColor(this.themePrimary)
+                .onChange((value: number) => {
+                  this.wheelBrightness = value;
+                  this.applyWheelColor();
+                })
+              Text(`${Math.round(this.wheelBrightness)}%`)
+                .fontSize(13)
+                .fontColor(AppTheme.textSecondary)
+                .width(46)
+                .textAlign(TextAlign.End)
+            }
+            .width('100%')
+          }
+          .width('100%')
+          .padding(AppTheme.pagePadding)
+          .backgroundColor(AppTheme.surface)
+          .borderRadius(AppTheme.radiusM)
+          .alignItems(HorizontalAlign.Start)
+        }
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding })
+      .scrollBar(BarState.Off)
+
+      Row({ space: 12 }) {
+        Button('恢复默认')
+          .layoutWeight(1)
+          .height(44)
+          .fontSize(14)
+          .fontColor(AppTheme.textPrimary)
+          .backgroundColor(AppTheme.surfaceAlt)
+          .borderRadius(22)
+          .stateEffect(false)
+          .onClick(() => {
+            SettingsStore.setThemeColor(AppTheme.primaryDefault);
+            this.syncWheelFromTheme();
+          })
+        Button('完成')
+          .layoutWeight(1)
+          .height(44)
+          .fontSize(14)
+          .fontColor(AppTheme.onPrimary)
+          .backgroundColor(this.themePrimary)
+          .borderRadius(22)
+          .stateEffect(false)
+          .onClick(() => {
+            this.activeSheet = 'appearance';
+          })
+      }
+      .width('100%')
+      .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding })
+    }
+    .width('100%')
+    .height('100%')
+    .padding({
+      top: 20,
+      bottom: 20
+    })
+  }
+
+  private syncWheelFromTheme(): void {
+    const rgb = SettingsView.parseHexColor(this.themePrimary);
+    if (rgb === null) {
+      return;
+    }
+    const r = rgb[0];
+    const g = rgb[1];
+    const b = rgb[2];
+    const max = Math.max(r, Math.max(g, b));
+    const min = Math.min(r, Math.min(g, b));
+    const delta = max - min;
+    let hue = 0;
+    if (delta > 0) {
+      if (max === r) {
+        hue = 60 * (((g - b) / delta) % 6);
+      } else if (max === g) {
+        hue = 60 * ((b - r) / delta + 2);
+      } else {
+        hue = 60 * ((r - g) / delta + 4);
+      }
+    }
+    if (hue < 0) {
+      hue += 360;
+    }
+    this.wheelHue = hue;
+    this.wheelBrightness = Math.round(max * 100 / 255);
+  }
+
+  private drawWheel(): void {
+    const ctx = this.wheelCtx;
+    const size = 200;
+    const center = size / 2;
+    const outer = 94;
+    const inner = 56;
+    ctx.clearRect(0, 0, size, size);
+    const segments = 144;
+    for (let index = 0; index < segments; index++) {
+      const startAngle = (index / segments) * Math.PI * 2;
+      const endAngle = ((index + 1) / segments) * Math.PI * 2 + 0.03;
+      const hue = index * 360 / segments;
+      const color = SettingsView.hsvToHex(hue, 0.92, 0.95);
+      ctx.beginPath();
+      ctx.arc(center, center, (outer + inner) / 2, startAngle, endAngle);
+      ctx.lineWidth = outer - inner;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(center, center, inner - 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+  }
+
+  private pickFromWheel(x: number, y: number): void {
+    const center = 100;
+    const dx = x - center;
+    const dy = y - center;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance < 56 || distance > 97) {
+      return;
+    }
+    let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    if (angle < 0) {
+      angle += 360;
+    }
+    this.wheelHue = angle;
+    this.applyWheelColor();
+  }
+
+  private applyWheelColor(): void {
+    const value = Math.max(0.25, this.wheelBrightness / 100);
+    const color = SettingsView.hsvToHex(this.wheelHue, 0.92, value);
+    this.applyThemeColor(color);
+  }
+
+  private static parseHexColor(color: string): number[] | null {
+    const hex = color.startsWith('#') ? color.substring(1) : color;
+    const rgb = hex.length === 8 ? hex.substring(2) : hex;
+    if (rgb.length !== 6) {
+      return null;
+    }
+    const r = parseInt(rgb.substring(0, 2), 16);
+    const g = parseInt(rgb.substring(2, 4), 16);
+    const b = parseInt(rgb.substring(4, 6), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+      return null;
+    }
+    return [r, g, b];
+  }
+
+  private static hsvToHex(hue: number, saturation: number, value: number): string {
+    const c = value * saturation;
+    const hh = hue / 60;
+    const x = c * (1 - Math.abs(hh % 2 - 1));
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    if (hh < 1) {
+      r = c;
+      g = x;
+    } else if (hh < 2) {
+      r = x;
+      g = c;
+    } else if (hh < 3) {
+      g = c;
+      b = x;
+    } else if (hh < 4) {
+      g = x;
+      b = c;
+    } else if (hh < 5) {
+      r = x;
+      b = c;
+    } else {
+      r = c;
+      b = x;
+    }
+    const m = value - c;
+    return `#FF${SettingsView.channelHex(r + m)}${SettingsView.channelHex(g + m)}${SettingsView.channelHex(b + m)}`.toUpperCase();
+  }
+
+  private static channelHex(value: number): string {
+    let channel = Math.round(value * 255);
+    if (channel < 0) {
+      channel = 0;
+    }
+    if (channel > 255) {
+      channel = 255;
+    }
+    return channel < 16 ? `0${channel.toString(16)}` : channel.toString(16);
+  }
+
+  private applyThemeColor(color: string): void {
+    if (!SettingsView.isValidThemeColor(color)) {
+      this.getUIContext().getPromptAction().showToast({
+        message: '请选择有彩度的颜色（不要透明、黑、白、灰）'
+      });
+      return;
+    }
+    SettingsStore.setThemeColor(color);
+  }
+
+  private static isValidThemeColor(color: string): boolean {
+    const hex = color.startsWith('#') ? color.substring(1) : color;
+    if (hex.length !== 6 && hex.length !== 8) {
+      return false;
+    }
+    if (hex.length === 8 && hex.substring(0, 2).toLowerCase() !== 'ff') {
+      return false;
+    }
+    const rgb = hex.length === 8 ? hex.substring(2) : hex;
+    const r = parseInt(rgb.substring(0, 2), 16);
+    const g = parseInt(rgb.substring(2, 4), 16);
+    const b = parseInt(rgb.substring(4, 6), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+      return false;
+    }
+    const max = Math.max(r, Math.max(g, b));
+    const min = Math.min(r, Math.min(g, b));
+    const chroma = max - min;
+    if (chroma < 40 || max < 60 || min > 225) {
+      return false;
+    }
+    return true;
   }
 
   @Builder
@@ -336,11 +675,11 @@ export struct SettingsView {
           Stack() {
             SymbolGlyph($r('sys.symbol.folder'))
               .fontSize(30)
-              .fontColor([AppTheme.primary])
+              .fontColor([this.themePrimary])
           }
           .width(72)
           .height(72)
-          .backgroundColor(AppTheme.alpha(AppTheme.primary, '1F'))
+          .backgroundColor(AppTheme.alpha(this.themePrimary, '1F'))
           .borderRadius(36)
 
           Text('还没有添加游戏目录')
@@ -388,7 +727,7 @@ export struct SettingsView {
           .height(44)
           .fontSize(14)
           .fontColor(AppTheme.onPrimary)
-          .backgroundColor(AppTheme.primary)
+          .backgroundColor(this.themePrimary)
           .borderRadius(22)
           .enabled(!this.busy)
           .stateEffect(false)

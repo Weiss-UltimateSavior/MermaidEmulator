@@ -29,9 +29,15 @@ export class SettingsStore {
       AppStorage.setOrCreate<string>('stg_engineScale', SettingsStore.readString('stg_engineScale', '跟随游戏'));
       AppStorage.setOrCreate<string>('stg_engineOrientation', SettingsStore.readString('stg_engineOrientation', '固定横屏'));
       AppStorage.setOrCreate<boolean>('stg_engineVsync', SettingsStore.readBool('stg_engineVsync', true));
+      AppStorage.setOrCreate<string>('themePrimary', SettingsStore.readString('stg_themeColor', '#0E8BD3'));
     } catch (err) {
       hilog.error(DOMAIN, TAG, 'init failed: %{public}s', JSON.stringify(err));
     }
+  }
+
+  static setThemeColor(color: string): void {
+    AppStorage.setOrCreate<string>('themePrimary', color);
+    SettingsStore.persist();
   }
 
   static setString(key: string, value: string): void {
@@ -65,6 +71,7 @@ export class SettingsStore {
       pref.putSync('stg_engineScale', AppStorage.get<string>('stg_engineScale') ?? '跟随游戏');
       pref.putSync('stg_engineOrientation', AppStorage.get<string>('stg_engineOrientation') ?? '固定横屏');
       pref.putSync('stg_engineVsync', AppStorage.get<boolean>('stg_engineVsync') ?? true);
+      pref.putSync('stg_themeColor', AppStorage.get<string>('themePrimary') ?? '#0E8BD3');
       pref.flush((err) => {
         if (err) {
           hilog.warn(DOMAIN, TAG, 'flush failed: %{public}s', JSON.stringify(err));

@@ -8,6 +8,10 @@ export struct GameCard {
   @ObjectLink game: Game;
   onTap: (game: Game) => void = (game: Game) => {
   };
+  private tapStartedAt: number = 0;
+  private tapX: number = 0;
+  private tapY: number = 0;
+  private suppressTap: boolean = false;
 
   build() {
     Column({ space: 8 }) {
@@ -59,7 +63,33 @@ export struct GameCard {
         .width('100%')
     }
     .width('100%')
+    .onTouch((event: TouchEvent) => {
+      const touch = event.touches.length > 0 ? event.touches[0] : null;
+      if (touch === null) {
+        return;
+      }
+      if (event.type === TouchType.Down) {
+        this.tapStartedAt = Date.now();
+        this.tapX = touch.x;
+        this.tapY = touch.y;
+        this.suppressTap = false;
+      } else if (event.type === TouchType.Move) {
+        if (Math.abs(touch.x - this.tapX) > 10 || Math.abs(touch.y - this.tapY) > 10) {
+          this.suppressTap = true;
+        }
+      } else if (event.type === TouchType.Up) {
+        if (Date.now() - this.tapStartedAt > 500) {
+          this.suppressTap = true;
+        }
+      } else {
+        this.suppressTap = true;
+      }
+    })
     .onClick(() => {
+      if (this.suppressTap) {
+        this.suppressTap = false;
+        return;
+      }
       this.onTap(this.game);
     })
   }

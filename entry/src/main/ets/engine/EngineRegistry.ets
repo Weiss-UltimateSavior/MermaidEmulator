@@ -16,8 +16,17 @@ export class EngineRegistry {
       new PlannedEngine('onscripter', 'ONScripter', 'ONScripter Project', '经典 NScripter 兼容内核，支持 .nsa / .sar 封包。', ['.nsa', '.sar', '.nscript']),
       EngineRegistry.rpgmEngine('rpgm_mv', 'RPG Maker MV', 'RPG Maker MV 游戏（index.html + js/rpg_core.js），运行时规划中。', ['.js']),
       EngineRegistry.rpgmEngine('rpgm_mz', 'RPG Maker MZ', 'RPG Maker MZ 游戏（index.html + js/rmmz_core.js），运行时规划中。', ['.js']),
-      new PlannedEngine('tyrano', 'TyranoScript', 'ShikemokuMK', 'TyranoScript 视觉小说（index.html + tyrano/ 目录），运行时规划中。', ['.ks', '.asar'])
+      EngineRegistry.tyranoEngine()
     ];
+  }
+
+  private static tyranoEngine(): EngineCore {
+    const engine = new PlannedEngine('tyrano', 'TyranoScript', 'ShikemokuMK',
+      'TyranoScript 视觉小说（Web 运行时，已接入）', ['.ks', '.asar']);
+    engine.status = EngineStatus.READY;
+    engine.version = 'Web 运行时';
+    engine.runtime = 'ArkWeb';
+    return engine;
   }
 
   private static rpgmEngine(id: string, name: string, description: string,

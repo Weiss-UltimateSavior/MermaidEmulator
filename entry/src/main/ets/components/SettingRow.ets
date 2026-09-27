@@ -4,6 +4,7 @@ import { AppTheme } from '../common/Theme';
 export struct SettingRow {
   icon: Resource = $r('sys.symbol.folder');
   showIcon: boolean = true;
+  @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
   title: string = '';
   detail: string = '';
   arrow: boolean = false;
@@ -22,7 +23,7 @@ export struct SettingRow {
       if (this.showIcon) {
         SymbolGlyph(this.icon)
           .fontSize(24)
-          .fontColor([AppTheme.primary])
+          .fontColor([this.themePrimary])
       }
 
       Column({ space: 2 }) {
@@ -47,7 +48,7 @@ export struct SettingRow {
       if (this.arrow) {
         SymbolGlyph($r('sys.symbol.chevron_right'))
           .fontSize(20)
-          .fontColor([AppTheme.primary])
+          .fontColor([this.themePrimary])
       }
 
       this.suffix()

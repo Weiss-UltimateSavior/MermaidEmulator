@@ -6,7 +6,11 @@ export class AppTheme {
   static readonly surfaceHigh: string = '#DEE7F5';
   static readonly border: string = '#E4EAF4';
 
-  static readonly primary: string = '#0E8BD3';
+  static primary(): string {
+    return AppStorage.get<string>('themePrimary') ?? AppTheme.primaryDefault;
+  }
+
+  static readonly primaryDefault: string = '#0E8BD3';
   static readonly primaryDim: string = '#0A6BA4';
   static readonly accent: string = '#6C5CE7';
   static readonly accentDim: string = '#4F44A8';

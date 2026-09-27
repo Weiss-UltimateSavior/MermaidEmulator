@@ -8,6 +8,7 @@ import { SettingsStore } from '../store/SettingsStore';
 @Component
 export struct KernelView {
   @State showEngineSheet: boolean = false;
+  @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
   @State engineOs: string = 'windows';
   @State engineScale: string = '跟随游戏';
   @State engineOrientation: string = '固定横屏';
@@ -43,7 +44,7 @@ export struct KernelView {
               if (engine.status === EngineStatus.READY) {
                 SymbolGlyph($r('sys.symbol.checkmark'))
                   .fontSize(20)
-                  .fontColor([AppTheme.primary])
+                  .fontColor([this.themePrimary])
               } else {
                 Text(engine.statusText())
                   .fontSize(14)
@@ -93,7 +94,7 @@ export struct KernelView {
               .fontColor(AppTheme.textPrimary)
               .layoutWeight(1)
             Toggle({ type: ToggleType.Switch, isOn: this.engineVsync })
-              .selectedColor(AppTheme.primary)
+              .selectedColor(this.themePrimary)
               .onChange((isOn: boolean) => {
                 this.engineVsync = isOn;
                 SettingsStore.setBool('stg_engineVsync', isOn);
@@ -135,12 +136,12 @@ export struct KernelView {
         Row({ space: 2 }) {
           Text(this.labelFor(kind))
             .fontSize(14)
-            .fontColor(AppTheme.primary)
+            .fontColor(this.themePrimary)
           SymbolGlyph(this.expandedKind === kind
             ? $r('sys.symbol.chevron_compact_up')
             : $r('sys.symbol.chevron_compact_down'))
             .fontSize(14)
-            .fontColor([AppTheme.primary])
+            .fontColor([this.themePrimary])
         }
         .padding({ left: 4, top: 6, bottom: 6 })
         .clickEffect(null)
@@ -207,7 +208,7 @@ export struct KernelView {
       if (selected) {
         SymbolGlyph($r('sys.symbol.checkmark'))
           .fontSize(16)
-          .fontColor([AppTheme.primary])
+          .fontColor([this.themePrimary])
       }
     }
     .width('100%')

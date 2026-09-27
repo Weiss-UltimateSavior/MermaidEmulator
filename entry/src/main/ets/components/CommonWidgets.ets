@@ -29,6 +29,7 @@ export struct EmptyState {
   icon: Resource = $r('sys.symbol.gamecontroller');
   title: string = '';
   desc: string = '';
+  @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
 
   @Builder
   emptyAction() {
@@ -41,11 +42,11 @@ export struct EmptyState {
       Stack() {
         SymbolGlyph(this.icon)
           .fontSize(30)
-          .fontColor([AppTheme.primary])
+          .fontColor([this.themePrimary])
       }
       .width(72)
       .height(72)
-      .backgroundColor(AppTheme.alpha(AppTheme.primary, '1F'))
+      .backgroundColor(AppTheme.alpha(this.themePrimary, '1F'))
       .borderRadius(36)
 
       Text(this.title)

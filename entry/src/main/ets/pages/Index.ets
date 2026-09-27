@@ -22,6 +22,7 @@ struct Index {
   private avoidCallback: ((data: window.AvoidAreaOptions) => void) | null = null;
   @State currentTab: number = 0;
   @State safeBottom: number = 0;
+  @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
 
   aboutToAppear(): void {
     const context = this.getUIContext().getHostContext();
@@ -75,17 +76,17 @@ struct Index {
         TabContent() {
           LibraryView()
         }
-        .tabBar(this.GlassTabItem(0, $r('app.media.nav_game')))
+        .tabBar(this.GlassTabItem(0, $r('app.media.nav_game'), '游戏'))
 
         TabContent() {
           KernelView()
         }
-        .tabBar(this.GlassTabItem(1, $r('app.media.nav_engine')))
+        .tabBar(this.GlassTabItem(1, $r('app.media.nav_engine'), '引擎'))
 
         TabContent() {
           SettingsView()
         }
-        .tabBar(this.GlassTabItem(2, $r('app.media.nav_settings')))
+        .tabBar(this.GlassTabItem(2, $r('app.media.nav_settings'), '设置'))
       }
       .vertical(false)
       .barPosition(BarPosition.End)
@@ -123,13 +124,16 @@ struct Index {
   }
 
   @Builder
-  GlassTabItem(index: number, icon: Resource) {
-    Column() {
+  GlassTabItem(index: number, icon: Resource, label: string) {
+    Column({ space: 1 }) {
       Image(icon)
-        .width(36)
-        .height(36)
+        .width(26)
+        .height(26)
         .objectFit(ImageFit.Contain)
-        .colorFilter(this.currentTab === index ? AppTheme.primary : AppTheme.textSecondary)
+        .colorFilter(this.currentTab === index ? this.themePrimary : AppTheme.textSecondary)
+      Text(label)
+        .fontSize(10)
+        .fontColor(this.currentTab === index ? this.themePrimary : AppTheme.textSecondary)
     }
     .justifyContent(FlexAlign.Center)
     .height(48)
