@@ -6,10 +6,14 @@ const TAG: string = 'SettingsStore';
 const PREF_NAME: string = 'mermaid_settings';
 
 export class WebEngineConfig {
+  static readonly DEFAULT_PORT: number = 23333;
+  static readonly MIN_PORT: number = 1;
+  static readonly MAX_PORT: number = 65535;
   orientation: string = '固定横屏';
   network: boolean = true;
   volume: number = 100;
   touchPad: boolean = false;
+  port: number = WebEngineConfig.DEFAULT_PORT;
 }
 
 export class SettingsStore {
@@ -68,10 +72,21 @@ export class SettingsStore {
       if (typeof parsed.touchPad === 'boolean') {
         config.touchPad = parsed.touchPad;
       }
+      if (typeof parsed.port === 'number') {
+        config.port = SettingsStore.normalizeWebPort(parsed.port);
+      }
     } catch (err) {
       return config;
     }
     return config;
+  }
+
+  static normalizeWebPort(value: number): number {
+    if (value >= WebEngineConfig.MIN_PORT && value <= WebEngineConfig.MAX_PORT &&
+      Math.floor(value) === value) {
+      return value;
+    }
+    return WebEngineConfig.DEFAULT_PORT;
   }
 
   static setWebConfig(engineId: string, config: WebEngineConfig): void {

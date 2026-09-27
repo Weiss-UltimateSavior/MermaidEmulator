@@ -13,6 +13,8 @@ export struct KernelView {
   @State webNetwork: boolean = true;
   @State webVolume: number = 100;
   @State webTouchPad: boolean = false;
+  @State webPort: number = WebEngineConfig.DEFAULT_PORT;
+  @State webPortText: string = `${WebEngineConfig.DEFAULT_PORT}`;
   @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
   @State engineOs: string = 'windows';
   @State engineScale: string = '跟随游戏';
@@ -148,6 +150,10 @@ export struct KernelView {
         }
 
         ListItem() {
+          this.portRow()
+        }
+
+        ListItem() {
           this.switchRow('外部网络', '允许游戏访问外部网络资源', this.webNetwork, (isOn: boolean) => {
             this.webNetwork = isOn;
             this.persistWebConfig();
@@ -250,6 +256,55 @@ export struct KernelView {
     .borderRadius(AppTheme.radiusM)
   }
 
+  @Builder
+  portRow() {
+    Column({ space: 6 }) {
+      Row({ space: 12 }) {
+        Text('Web 服务端口')
+          .fontSize(16)
+          .fontColor(AppTheme.textPrimary)
+          .layoutWeight(1)
+
+        TextInput({ text: this.webPortText })
+          .type(InputType.Number)
+          .maxLength(5)
+          .width(84)
+          .height(36)
+          .fontSize(14)
+          .fontColor(this.themePrimary)
+          .textAlign(TextAlign.Center)
+          .caretColor(this.themePrimary)
+          .backgroundColor(AppTheme.surfaceAlt)
+          .borderRadius(AppTheme.radiusS)
+          .onChange((value: string) => {
+            this.webPortText = KernelView.filterPortDigits(value);
+          })
+          .onSubmit(() => {
+            this.commitWebPort();
+          })
+          .onBlur(() => {
+            this.commitWebPort();
+          })
+      }
+      .width('100%')
+
+      Text(`固定端口（默认 ${WebEngineConfig.DEFAULT_PORT}）保证网页存档域稳定；改动后旧存档可能不再可见`)
+        .fontSize(12)
+        .fontColor(AppTheme.textTertiary)
+        .width('100%')
+    }
+    .width('100%')
+    .constraintSize({ minHeight: 56 })
+    .padding({
+      left: AppTheme.pagePadding,
+      right: AppTheme.pagePadding,
+      top: 14,
+      bottom: 14
+    })
+    .backgroundColor(AppTheme.surface)
+    .borderRadius(AppTheme.radiusM)
+  }
+
   private openEngineSheet(engineId: string): void {
     this.activeEngineId = engineId;
     if (engineId !== 'artemis') {
@@ -258,8 +313,29 @@ export struct KernelView {
       this.webNetwork = config.network;
       this.webVolume = config.volume;
       this.webTouchPad = config.touchPad;
+      this.webPort = config.port;
+      this.webPortText = `${config.port}`;
     }
     this.showEngineSheet = true;
+  }
+
+  private commitWebPort(): void {
+    const parsed = parseInt(this.webPortText, 10);
+    const port = SettingsStore.normalizeWebPort(isNaN(parsed) ? 0 : parsed);
+    this.webPort = port;
+    this.webPortText = `${port}`;
+    this.persistWebConfig();
+  }
+
+  private static filterPortDigits(value: string): string {
+    let digits = '';
+    for (let i = 0; i < value.length && digits.length < 5; i++) {
+      const ch = value.charAt(i);
+      if (ch >= '0' && ch <= '9') {
+        digits += ch;
+      }
+    }
+    return digits;
   }
 
   private persistWebConfig(): void {
@@ -268,6 +344,7 @@ export struct KernelView {
     config.network = this.webNetwork;
     config.volume = this.webVolume;
     config.touchPad = this.webTouchPad;
+    config.port = this.webPort;
     SettingsStore.setWebConfig(this.activeEngineId, config);
   }
 

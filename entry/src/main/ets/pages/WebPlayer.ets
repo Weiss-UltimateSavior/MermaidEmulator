@@ -13,7 +13,7 @@ import { SettingsStore, WebEngineConfig } from '../store/SettingsStore';
 
 const DOMAIN: number = 0x4D45;
 const TAG: string = 'WebPlayer';
-const ORIGIN: string = 'http://127.0.0.1';
+const HOST: string = 'http://127.0.0.1';
 const ENTRY_PATH: string = 'index.html';
 const HOOK_FILE: string = 'tyrano_hook.js';
 
@@ -62,6 +62,7 @@ struct WebPlayer {
   private engineId: string = 'tyrano';
   private bridgeName: string = 'appJsInterface';
   private config: WebEngineConfig = new WebEngineConfig();
+  private origin: string = `${HOST}:${WebEngineConfig.DEFAULT_PORT}`;
   private mzCoreAppend: string = '';
   private mzManagersAppend: string = '';
 
@@ -76,6 +77,7 @@ struct WebPlayer {
     this.engineId = game.engineId;
     this.bridgeName = this.engineId === 'tyrano' ? 'appJsInterface' : 'saveDataManager';
     this.config = SettingsStore.webConfig(this.engineId);
+    this.origin = `${HOST}:${this.config.port}`;
     const context = this.getUIContext().getHostContext();
     if (context === undefined) {
       this.hostState = '无法获取应用上下文';
@@ -247,7 +249,7 @@ struct WebPlayer {
       response.setResponseData('missing assets');
       return response;
     }
-    if (!url.startsWith(ORIGIN)) {
+    if (!url.startsWith(this.origin)) {
       if (this.config.network) {
         return null;
       }
@@ -401,7 +403,7 @@ struct WebPlayer {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      Web({ src: `${ORIGIN}/${ENTRY_PATH}`, controller: this.controller })
+      Web({ src: `${this.origin}/${ENTRY_PATH}`, controller: this.controller })
         .width('100%')
         .height('100%')
         .darkMode(WebDarkMode.Off)
