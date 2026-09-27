@@ -167,6 +167,23 @@ export class SettingsStore {
     }
   }
 
+  static removeGameEngineConfig(gameId: string): void {
+    const pref = SettingsStore.pref;
+    if (pref === null || gameId.length === 0) {
+      return;
+    }
+    try {
+      pref.deleteSync(`stg_game_${gameId}`);
+      pref.flush((err) => {
+        if (err) {
+          hilog.warn(DOMAIN, TAG, 'game engine config flush failed: %{public}s', JSON.stringify(err));
+        }
+      });
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, 'game engine config delete failed: %{public}s', JSON.stringify(err));
+    }
+  }
+
   static artemisConfig(gameId: string): ArtemisConfig {
     const config = new ArtemisConfig();
     config.osId = AppStorage.get<string>('stg_engineOs') ?? 'windows';

@@ -95,6 +95,11 @@ export class LibraryStore {
     LibraryStore.persist();
   }
 
+  static rename(game: Game, title: string): void {
+    game.title = title;
+    LibraryStore.persist();
+  }
+
   static updateCover(game: Game, coverPath: string, coverSource: string): void {
     game.coverPath = coverPath;
     game.coverSource = coverSource;

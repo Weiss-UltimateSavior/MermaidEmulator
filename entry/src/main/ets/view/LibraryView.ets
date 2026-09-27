@@ -6,9 +6,12 @@ import { router } from '@kit.ArkUI';
 import { AppTheme } from '../common/Theme';
 import { Game } from '../model/Game';
 import { GameFolderStore } from '../store/GameFolderStore';
+import { LibraryStore } from '../store/LibraryStore';
+import { SettingsStore } from '../store/SettingsStore';
 import { GameCard } from '../components/GameCard';
 import { EmptyState, PageTopBar } from '../components/CommonWidgets';
 import { EngineSettingsPanel } from '../components/EngineSettingsPanel';
+import { RenameDialog } from '../components/RenameDialog';
 import { SettingRow } from '../components/SettingRow';
 
 const DOMAIN: number = 0x4D45;
@@ -35,7 +38,19 @@ export struct LibraryView {
   @State importing: boolean = false;
   @State showGameSheet: boolean = false;
   @State sheetMode: string = 'actions';
+  @State renameText: string = '';
   @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
+  private renameDialog: CustomDialogController = new CustomDialogController({
+    builder: RenameDialog({
+      name: $renameText,
+      onConfirm: (name: string) => {
+        return this.applyRename(name);
+      }
+    }),
+    autoCancel: true,
+    customStyle: true,
+    alignment: DialogAlignment.Center
+  });
   @State selectedGame: Game = Game.placeholder();
   private gameActions: GameActionItem[] = [
     new GameActionItem($r('sys.symbol.play_fill'), '启动游戏', 'launch'),
@@ -194,6 +209,16 @@ export struct LibraryView {
       this.sheetMode = 'engine';
       return;
     }
+    if (key === 'rename') {
+      this.renameText = this.selectedGame.title;
+      this.showGameSheet = false;
+      this.renameDialog.open();
+      return;
+    }
+    if (key === 'delete') {
+      this.confirmDelete();
+      return;
+    }
     if (key === 'cover') {
       this.showGameSheet = false;
       this.pickCover();
@@ -215,6 +240,45 @@ export struct LibraryView {
         hilog.warn(DOMAIN, TAG, 'open player failed: %{public}s', JSON.stringify(err));
       });
     }
+  }
+
+  private applyRename(input: string): boolean {
+    const name = input.trim();
+    if (name.length === 0) {
+      this.getUIContext().getPromptAction().showToast({ message: '名称不能为空' });
+      return false;
+    }
+    const game = this.selectedGame;
+    if (name === game.title) {
+      return true;
+    }
+    LibraryStore.rename(game, name);
+    this.getUIContext().getPromptAction().showToast({ message: '名称已修改' });
+    return true;
+  }
+
+  private confirmDelete(): void {
+    const game = this.selectedGame;
+    this.getUIContext().showAlertDialog({
+      title: '删除游戏',
+      message: `仅从游戏仓库移除「${game.title}」，不会删除游戏目录、封面或存档文件。`,
+      autoCancel: true,
+      primaryButton: {
+        value: '取消',
+        action: () => {
+        }
+      },
+      secondaryButton: {
+        value: '删除',
+        fontColor: AppTheme.danger,
+        action: () => {
+          LibraryStore.remove(game.id);
+          SettingsStore.removeGameEngineConfig(game.id);
+          this.showGameSheet = false;
+          this.getUIContext().getPromptAction().showToast({ message: '已从游戏仓库移除' });
+        }
+      }
+    });
   }
 
   private async pickCover(): Promise<void> {
