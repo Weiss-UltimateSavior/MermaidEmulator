@@ -231,6 +231,9 @@ export class GameFolderStore {
     if (hasAppAsar) {
       return 'tyrano';
     }
+    if (hasIndex) {
+      return 'webother';
+    }
     return '';
   }
 

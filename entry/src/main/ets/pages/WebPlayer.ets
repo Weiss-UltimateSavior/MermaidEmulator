@@ -9,14 +9,15 @@ import { Game } from '../model/Game';
 import { LibraryStore } from '../store/LibraryStore';
 import { TyranoAssets } from '../service/TyranoAssets';
 import { TyranoStore } from '../service/TyranoStore';
+import { SettingsStore, WebEngineConfig } from '../store/SettingsStore';
 
 const DOMAIN: number = 0x4D45;
-const TAG: string = 'TyranoPlayer';
+const TAG: string = 'WebPlayer';
 const ORIGIN: string = 'http://127.0.0.1';
 const ENTRY_PATH: string = 'index.html';
 const HOOK_FILE: string = 'tyrano_hook.js';
 
-class TyranoBridge {
+class WebBridge {
   setStorage: (key: string, value: string) => void = () => {
   };
   getStorage: (key: string) => string = () => {
@@ -32,11 +33,22 @@ class TyranoBridge {
   };
   audio: (value: string) => void = () => {
   };
+  Save: (key: string, data: string) => void = () => {
+  };
+  Load: (key: string) => string = () => {
+    return '';
+  };
+  Exists: (key: string) => boolean = () => {
+    return false;
+  };
+  Remove: (key: string) => boolean = () => {
+    return false;
+  };
 }
 
 @Entry
 @Component
-struct TyranoPlayer {
+struct WebPlayer {
   @StorageLink('safeTopVp') safeTop: number = 0;
   @State gameTitle: string = '';
   @State hostState: string = '正在启动…';
@@ -45,8 +57,13 @@ struct TyranoPlayer {
   private assets: TyranoAssets | null = null;
   private saveDir: string = '';
   private hookScript: string = '';
-  private bridge: TyranoBridge = new TyranoBridge();
+  private bridge: WebBridge = new WebBridge();
   private mainWindow: window.Window | null = null;
+  private engineId: string = 'tyrano';
+  private bridgeName: string = 'appJsInterface';
+  private config: WebEngineConfig = new WebEngineConfig();
+  private mzCoreAppend: string = '';
+  private mzManagersAppend: string = '';
 
   aboutToAppear(): void {
     const gameId = AppStorage.get<string>('playerGameId') ?? '';
@@ -56,6 +73,9 @@ struct TyranoPlayer {
       return;
     }
     this.gameTitle = game.title;
+    this.engineId = game.engineId;
+    this.bridgeName = this.engineId === 'tyrano' ? 'appJsInterface' : 'saveDataManager';
+    this.config = SettingsStore.webConfig(this.engineId);
     const context = this.getUIContext().getHostContext();
     if (context === undefined) {
       this.hostState = '无法获取应用上下文';
@@ -63,11 +83,11 @@ struct TyranoPlayer {
     }
     const assets = TyranoAssets.find(game.path);
     if (assets === null) {
-      this.hostState = '未找到 Tyrano 入口（index.html / app.asar）';
+      this.hostState = '未找到 Web 入口（index.html / app.asar）';
       return;
     }
     this.assets = assets;
-    this.saveDir = `${context.filesDir}/tyrano_saves/${game.id}`;
+    this.saveDir = `${context.filesDir}/web_saves/${game.id}`;
     try {
       if (!fileIo.accessSync(this.saveDir)) {
         fileIo.mkdirSync(this.saveDir, true);
@@ -87,8 +107,7 @@ struct TyranoPlayer {
   }
 
   private setupGameWindow(context: Context): void {
-    const orientation = AppStorage.get<string>('stg_engineOrientation') ?? '固定横屏';
-    const preferred = orientation === '自动旋转'
+    const preferred = this.config.orientation === '自动旋转'
       ? window.Orientation.AUTO_ROTATION_LANDSCAPE
       : window.Orientation.LANDSCAPE;
     window.getLastWindow(context).then((win: window.Window) => {
@@ -118,13 +137,43 @@ struct TyranoPlayer {
   }
 
   private async loadHook(context: Context): Promise<void> {
+    const volumeScript =
+      `window.__appVolume=${Math.max(0, Math.min(100, this.config.volume)) / 100};` +
+      '(function(){var v=window.__appVolume;var P=HTMLMediaElement.prototype;var op=P.play;' +
+      'P.play=function(){try{this.volume=v;}catch(e){}return op.apply(this,arguments);};' +
+      'window.__setAppVolume=function(n){v=n;document.querySelectorAll("audio,video")' +
+      '.forEach(function(m){try{m.volume=n;}catch(e){}});};})();\n';
+    let script = volumeScript;
     try {
-      const content = await context.resourceManager.getRawFileContent(HOOK_FILE);
-      const decoder = util.TextDecoder.create('utf-8');
-      this.hookScript = decoder.decodeToString(content);
+      let asset = '';
+      if (this.engineId === 'tyrano') {
+        asset = HOOK_FILE;
+      } else if (this.engineId === 'rpgm_mv') {
+        asset = 'rpg_mv_hook.js';
+      } else if (this.engineId === 'rpgm_mz') {
+        asset = 'rpg_mz_hook.js';
+      }
+      if (asset.length > 0) {
+        const content = await context.resourceManager.getRawFileContent(asset);
+        const decoder = util.TextDecoder.create('utf-8');
+        script += decoder.decodeToString(content);
+      }
+      if (this.engineId === 'rpgm_mz') {
+        const decoder = util.TextDecoder.create('utf-8');
+        const coreAppend = await context.resourceManager.getRawFileContent('rmmz_core_append.js');
+        this.mzCoreAppend = decoder.decodeToString(coreAppend);
+        const managersAppend = await context.resourceManager.getRawFileContent('rmmz_managers_append.js');
+        this.mzManagersAppend = decoder.decodeToString(managersAppend);
+      }
+      if (this.config.touchPad && (this.engineId === 'rpgm_mv' || this.engineId === 'rpgm_mz')) {
+        const padContent = await context.resourceManager.getRawFileContent('touch_pad.js');
+        const decoder = util.TextDecoder.create('utf-8');
+        script += '\n' + decoder.decodeToString(padContent);
+      }
     } catch (err) {
       hilog.warn(DOMAIN, TAG, 'load hook failed: %{public}s', JSON.stringify(err));
     }
+    this.hookScript = script;
   }
 
   private setupBridge(): void {
@@ -152,15 +201,48 @@ struct TyranoPlayer {
     };
     this.bridge.audio = () => {
     };
+    this.bridge.Save = (key: string, data: string) => {
+      TyranoStore.write(this.saveDir, key, data);
+    };
+    this.bridge.Load = (key: string) => {
+      return TyranoStore.read(this.saveDir, key);
+    };
+    this.bridge.Exists = (key: string) => {
+      return TyranoStore.read(this.saveDir, key).length > 0;
+    };
+    this.bridge.Remove = (key: string) => {
+      const path = TyranoStore.resolveFile(this.saveDir, key);
+      if (path.length === 0) {
+        return false;
+      }
+      try {
+        if (fileIo.accessSync(path)) {
+          fileIo.unlinkSync(path);
+        }
+        return true;
+      } catch (err) {
+        return false;
+      }
+    };
   }
 
-  private serve(url: string, rangeHeader: string): WebResourceResponse {
+  private serve(url: string, rangeHeader: string): WebResourceResponse | null {
     const response = new WebResourceResponse();
     const assets = this.assets;
     if (assets === null) {
       response.setResponseCode(404);
       response.setResponseMimeType('text/plain');
       response.setResponseData('missing assets');
+      return response;
+    }
+    if (!url.startsWith(ORIGIN)) {
+      if (this.config.network) {
+        return null;
+      }
+      hilog.info(DOMAIN, TAG, 'blocked external request: %{public}s', url);
+      response.setResponseCode(403);
+      response.setResponseMimeType('text/plain');
+      response.setResponseData('external network disabled');
       return response;
     }
     let path = url;
@@ -247,10 +329,24 @@ struct TyranoPlayer {
     response.setResponseMimeType(mime);
     if (path.toLowerCase() === ENTRY_PATH || path.toLowerCase().endsWith('/index.html')) {
       const html = TyranoAssets.decodeUtf8(data);
-      const injected = TyranoPlayer.injectHook(html, this.hookScript);
+      const beforeBody = this.engineId === 'rpgm_mv' || this.engineId === 'rpgm_mz';
+      const injected = WebPlayer.injectHook(html, this.hookScript, beforeBody);
       response.setResponseEncoding('utf-8');
       response.setResponseData(injected);
       return response;
+    }
+    if (this.engineId === 'rpgm_mz') {
+      const lower = path.toLowerCase();
+      if (lower === 'js/rmmz_core.js' && this.mzCoreAppend.length > 0) {
+        response.setResponseEncoding('utf-8');
+        response.setResponseData(`${TyranoAssets.decodeUtf8(data)}\n${this.mzCoreAppend}`);
+        return response;
+      }
+      if (lower === 'js/rmmz_managers.js' && this.mzManagersAppend.length > 0) {
+        response.setResponseEncoding('utf-8');
+        response.setResponseData(`${TyranoAssets.decodeUtf8(data)}\n${this.mzManagersAppend}`);
+        return response;
+      }
     }
     if (mime.includes('text/') || mime.includes('application/javascript') ||
       mime.includes('application/json') || mime.includes('application/xml')) {
@@ -263,12 +359,13 @@ struct TyranoPlayer {
     return response;
   }
 
-  private static injectHook(html: string, hook: string): string {
+  private static injectHook(html: string, hook: string, beforeBody: boolean): string {
     if (hook.length === 0) {
       return html;
     }
     const tag = `\n<script type="text/javascript">\n${hook}\n</script>\n`;
-    const index = html.toLowerCase().indexOf('</head>');
+    const marker = beforeBody ? '</body>' : '</head>';
+    const index = html.toLowerCase().indexOf(marker);
     if (index >= 0) {
       return html.substring(0, index) + tag + html.substring(index);
     }
@@ -308,19 +405,21 @@ struct TyranoPlayer {
         })
         .javaScriptProxy({
           object: this.bridge,
-          name: 'appJsInterface',
+          name: this.bridgeName,
           methodList: ['setStorage', 'getStorage', 'closeGame', 'finishGame', 'openUrl',
-            'stopMovie', 'audio'],
+            'stopMovie', 'audio', 'Save', 'Load', 'Exists', 'Remove'],
           controller: this.controller
         })
 
       Column() {
         if (this.menuVisible) {
           Column({ space: 4 }) {
-            this.menuButton('存档', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.menu) TYRANO.kag.menu.displaySave();')
-            this.menuButton('读档', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.menu) TYRANO.kag.menu.displayLoad();')
-            this.menuButton('自动', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.ftag) TYRANO.kag.ftag.startTag("autostart", {});')
-            this.menuButton('快进', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.ftag) TYRANO.kag.ftag.startTag("skipstart", {});')
+            if (this.engineId === 'tyrano') {
+              this.menuButton('存档', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.menu) TYRANO.kag.menu.displaySave();')
+              this.menuButton('读档', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.menu) TYRANO.kag.menu.displayLoad();')
+              this.menuButton('自动', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.ftag) TYRANO.kag.ftag.startTag("autostart", {});')
+              this.menuButton('快进', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.ftag) TYRANO.kag.ftag.startTag("skipstart", {});')
+            }
             this.menuButton('结束', 'if ("appJsInterface" in window) appJsInterface.closeGame();')
           }
           .padding(6)

@@ -165,7 +165,8 @@ export struct LibraryView {
   private onGameAction(key: string): void {
     if (key === 'launch') {
       const engineId = this.selectedGame.engineId;
-      if (engineId !== 'artemis' && engineId !== 'tyrano') {
+      const webEngines: string[] = ['tyrano', 'rpgm_mv', 'rpgm_mz', 'webother'];
+      if (engineId !== 'artemis' && !webEngines.includes(engineId)) {
         this.getUIContext().getPromptAction().showToast({
           message: '该引擎运行时尚在规划中，暂不支持启动'
         });
@@ -173,7 +174,7 @@ export struct LibraryView {
       }
       this.showGameSheet = false;
       AppStorage.setOrCreate<string>('playerGameId', this.selectedGame.id);
-      const url = engineId === 'tyrano' ? 'pages/TyranoPlayer' : 'pages/Player';
+      const url = webEngines.includes(engineId) ? 'pages/WebPlayer' : 'pages/Player';
       router.pushUrl({ url: url }).catch((err: BusinessError) => {
         hilog.warn(DOMAIN, TAG, 'open player failed: %{public}s', JSON.stringify(err));
       });

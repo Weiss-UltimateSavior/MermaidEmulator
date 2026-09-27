@@ -14,10 +14,22 @@ export class EngineRegistry {
       new PlannedEngine('kirikiri', 'KiriKiri', 'KiriKiri Project', '吉里吉里内核，支持 .xp3 封包与 KAG 脚本。', ['.xp3', '.ks']),
       new PlannedEngine('renpy', "Ren'Py", 'Ren\'Py Team', 'Python 驱动的视觉小说引擎，支持 .rpa 归档。', ['.rpa', '.rpy']),
       new PlannedEngine('onscripter', 'ONScripter', 'ONScripter Project', '经典 NScripter 兼容内核，支持 .nsa / .sar 封包。', ['.nsa', '.sar', '.nscript']),
-      EngineRegistry.rpgmEngine('rpgm_mv', 'RPG Maker MV', 'RPG Maker MV 游戏（index.html + js/rpg_core.js），运行时规划中。', ['.js']),
-      EngineRegistry.rpgmEngine('rpgm_mz', 'RPG Maker MZ', 'RPG Maker MZ 游戏（index.html + js/rmmz_core.js），运行时规划中。', ['.js']),
-      EngineRegistry.tyranoEngine()
+      EngineRegistry.rpgmEngine('rpgm_mv', 'RPG Maker MV',
+        'RPG Maker MV 游戏（Web 运行时，已接入）', ['.js']),
+      EngineRegistry.rpgmEngine('rpgm_mz', 'RPG Maker MZ',
+        'RPG Maker MZ 游戏（Web 运行时，已接入）', ['.js']),
+      EngineRegistry.tyranoEngine(),
+      EngineRegistry.webOtherEngine()
     ];
+  }
+
+  private static webOtherEngine(): EngineCore {
+    const engine = new PlannedEngine('webother', 'WebOther', 'Web',
+      '通用网页游戏（index.html，Web 运行时，已接入）', ['.html', '.htm']);
+    engine.status = EngineStatus.READY;
+    engine.version = 'Web 运行时';
+    engine.runtime = 'ArkWeb';
+    return engine;
   }
 
   private static tyranoEngine(): EngineCore {
@@ -33,6 +45,9 @@ export class EngineRegistry {
     extensions: string[]): EngineCore {
     const engine = new PlannedEngine(id, name, 'Kadokawa', description, extensions);
     engine.icon = $r('sys.symbol.gamecontroller');
+    engine.status = EngineStatus.READY;
+    engine.version = 'Web 运行时';
+    engine.runtime = 'ArkWeb';
     return engine;
   }
 

@@ -5,6 +5,13 @@ const DOMAIN: number = 0x4D45;
 const TAG: string = 'SettingsStore';
 const PREF_NAME: string = 'mermaid_settings';
 
+export class WebEngineConfig {
+  orientation: string = '固定横屏';
+  network: boolean = true;
+  volume: number = 100;
+  touchPad: boolean = false;
+}
+
 export class SettingsStore {
   private static pref: preferences.Preferences | null = null;
 
@@ -32,6 +39,55 @@ export class SettingsStore {
       AppStorage.setOrCreate<string>('themePrimary', SettingsStore.readString('stg_themeColor', '#0E8BD3'));
     } catch (err) {
       hilog.error(DOMAIN, TAG, 'init failed: %{public}s', JSON.stringify(err));
+    }
+  }
+
+  static webConfig(engineId: string): WebEngineConfig {
+    const config = new WebEngineConfig();
+    config.touchPad = engineId === 'rpgm_mv' || engineId === 'rpgm_mz';
+    const pref = SettingsStore.pref;
+    if (pref === null) {
+      return config;
+    }
+    try {
+      const raw = pref.getSync(`stg_web_${engineId}`, '');
+      const text = typeof raw === 'string' ? raw : '';
+      if (text.length === 0) {
+        return config;
+      }
+      const parsed = JSON.parse(text) as WebEngineConfig;
+      if (typeof parsed.orientation === 'string') {
+        config.orientation = parsed.orientation;
+      }
+      if (typeof parsed.network === 'boolean') {
+        config.network = parsed.network;
+      }
+      if (typeof parsed.volume === 'number') {
+        config.volume = parsed.volume;
+      }
+      if (typeof parsed.touchPad === 'boolean') {
+        config.touchPad = parsed.touchPad;
+      }
+    } catch (err) {
+      return config;
+    }
+    return config;
+  }
+
+  static setWebConfig(engineId: string, config: WebEngineConfig): void {
+    const pref = SettingsStore.pref;
+    if (pref === null) {
+      return;
+    }
+    try {
+      pref.putSync(`stg_web_${engineId}`, JSON.stringify(config));
+      pref.flush((err) => {
+        if (err) {
+          hilog.warn(DOMAIN, TAG, 'web config flush failed: %{public}s', JSON.stringify(err));
+        }
+      });
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, 'web config persist failed: %{public}s', JSON.stringify(err));
     }
   }
 

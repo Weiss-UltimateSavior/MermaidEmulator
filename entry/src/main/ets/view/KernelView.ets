@@ -3,18 +3,23 @@ import { EngineCore, EngineStatus } from '../model/Engine';
 import { EngineRegistry } from '../engine/EngineRegistry';
 import { PageTopBar } from '../components/CommonWidgets';
 import { SettingRow } from '../components/SettingRow';
-import { SettingsStore } from '../store/SettingsStore';
+import { SettingsStore, WebEngineConfig } from '../store/SettingsStore';
 
 @Component
 export struct KernelView {
   @State showEngineSheet: boolean = false;
+  @State activeEngineId: string = 'artemis';
+  @State webOrientation: string = '固定横屏';
+  @State webNetwork: boolean = true;
+  @State webVolume: number = 100;
+  @State webTouchPad: boolean = false;
   @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
   @State engineOs: string = 'windows';
   @State engineScale: string = '跟随游戏';
   @State engineOrientation: string = '固定横屏';
   @State engineVsync: boolean = true;
   @State expandedKind: string = '';
-  private engines: EngineCore[] = EngineRegistry.installed();
+  private engines: EngineCore[] = EngineRegistry.all().filter((core: EngineCore) => core.status === EngineStatus.READY);
 
   aboutToAppear(): void {
     this.engineOs = AppStorage.get<string>('stg_engineOs') ?? 'windows';
@@ -38,7 +43,7 @@ export struct KernelView {
               icon: engine.icon,
               title: engine.name,
               onTap: () => {
-                this.showEngineSheet = true;
+                this.openEngineSheet(engine.id);
               }
             }) {
               if (engine.status === EngineStatus.READY) {
@@ -62,7 +67,7 @@ export struct KernelView {
     .width('100%')
     .height('100%')
     .padding({ bottom: 84 })
-    .bindSheet($$this.showEngineSheet, this.engineConfigSheet(), {
+    .bindSheet($$this.showEngineSheet, this.sheetContent(), {
       detents: [SheetSize.MEDIUM, SheetSize.LARGE],
       preferType: SheetType.BOTTOM,
       dragBar: true,
@@ -72,7 +77,16 @@ export struct KernelView {
   }
 
   @Builder
-  engineConfigSheet() {
+  sheetContent() {
+    if (this.activeEngineId === 'artemis') {
+      this.artemisSheet()
+    } else {
+      this.webSheet()
+    }
+  }
+
+  @Builder
+  artemisSheet() {
     Column() {
       List({ space: 8 }) {
         ListItem() {
@@ -126,6 +140,138 @@ export struct KernelView {
   }
 
   @Builder
+  webSheet() {
+    Column() {
+      List({ space: 8 }) {
+        ListItem() {
+          this.paramRow('屏幕方向', 'webOrientation')
+        }
+
+        ListItem() {
+          this.switchRow('外部网络', '允许游戏访问外部网络资源', this.webNetwork, (isOn: boolean) => {
+            this.webNetwork = isOn;
+            this.persistWebConfig();
+          })
+        }
+
+        ListItem() {
+          Column({ space: 10 }) {
+            Row({ space: 12 }) {
+              Text('音量')
+                .fontSize(16)
+                .fontColor(AppTheme.textPrimary)
+              Slider({ value: this.webVolume, min: 0, max: 100, step: 1 })
+                .layoutWeight(1)
+                .selectedColor(this.themePrimary)
+                .onChange((value: number) => {
+                  this.webVolume = value;
+                  this.persistWebConfig();
+                })
+              Text(`${Math.round(this.webVolume)}%`)
+                .fontSize(13)
+                .fontColor(AppTheme.textSecondary)
+                .width(46)
+                .textAlign(TextAlign.End)
+            }
+            .width('100%')
+          }
+          .width('100%')
+          .constraintSize({ minHeight: 56 })
+          .padding({
+            left: AppTheme.pagePadding,
+            right: AppTheme.pagePadding,
+            top: 14,
+            bottom: 14
+          })
+          .backgroundColor(AppTheme.surface)
+          .borderRadius(AppTheme.radiusM)
+          .justifyContent(FlexAlign.Center)
+        }
+
+        if (this.activeEngineId === 'rpgm_mv' || this.activeEngineId === 'rpgm_mz') {
+          ListItem() {
+            this.switchRow('触屏手柄', '虚拟摇杆与动作按键', this.webTouchPad, (isOn: boolean) => {
+              this.webTouchPad = isOn;
+              this.persistWebConfig();
+            })
+          }
+        }
+
+        ListItem() {
+          Text('配置在下次启动该引擎的游戏时生效。')
+            .fontSize(12)
+            .fontColor(AppTheme.textTertiary)
+            .width('100%')
+            .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding, top: 4 })
+        }
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding })
+      .scrollBar(BarState.Off)
+    }
+    .width('100%')
+    .height('100%')
+    .padding({
+      top: 20,
+      bottom: 20
+    })
+  }
+
+  @Builder
+  switchRow(title: string, detail: string, isOn: boolean, onChange: (isOn: boolean) => void) {
+    Row({ space: 12 }) {
+      Column({ space: 4 }) {
+        Text(title)
+          .fontSize(16)
+          .fontColor(AppTheme.textPrimary)
+        Text(detail)
+          .fontSize(12)
+          .fontColor(AppTheme.textTertiary)
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      Toggle({ type: ToggleType.Switch, isOn: isOn })
+        .selectedColor(this.themePrimary)
+        .onChange((value: boolean) => {
+          onChange(value);
+        })
+    }
+    .width('100%')
+    .constraintSize({ minHeight: 56 })
+    .padding({
+      left: AppTheme.pagePadding,
+      right: AppTheme.pagePadding,
+      top: 14,
+      bottom: 14
+    })
+    .backgroundColor(AppTheme.surface)
+    .borderRadius(AppTheme.radiusM)
+  }
+
+  private openEngineSheet(engineId: string): void {
+    this.activeEngineId = engineId;
+    if (engineId !== 'artemis') {
+      const config = SettingsStore.webConfig(engineId);
+      this.webOrientation = config.orientation;
+      this.webNetwork = config.network;
+      this.webVolume = config.volume;
+      this.webTouchPad = config.touchPad;
+    }
+    this.showEngineSheet = true;
+  }
+
+  private persistWebConfig(): void {
+    const config = new WebEngineConfig();
+    config.orientation = this.webOrientation;
+    config.network = this.webNetwork;
+    config.volume = this.webVolume;
+    config.touchPad = this.webTouchPad;
+    SettingsStore.setWebConfig(this.activeEngineId, config);
+  }
+
+  @Builder
   paramRow(title: string, kind: string) {
     Column() {
       Row() {
@@ -173,6 +319,13 @@ export struct KernelView {
             })
             this.optionRow('铺满裁剪', this.engineScale === '铺满裁剪', () => {
               this.pickValue('scale', '铺满裁剪');
+            })
+          } else if (kind === 'webOrientation') {
+            this.optionRow('固定横屏', this.webOrientation === '固定横屏', () => {
+              this.pickValue('webOrientation', '固定横屏');
+            })
+            this.optionRow('自动旋转', this.webOrientation === '自动旋转', () => {
+              this.pickValue('webOrientation', '自动旋转');
             })
           } else {
             this.optionRow('固定横屏', this.engineOrientation === '固定横屏', () => {
@@ -222,6 +375,12 @@ export struct KernelView {
   }
 
   private pickValue(kind: string, value: string): void {
+    if (kind === 'webOrientation') {
+      this.webOrientation = value;
+      this.persistWebConfig();
+      this.expandedKind = '';
+      return;
+    }
     if (kind === 'os') {
       this.engineOs = value;
       SettingsStore.setString('stg_engineOs', value);
@@ -236,6 +395,9 @@ export struct KernelView {
   }
 
   private labelFor(kind: string): string {
+    if (kind === 'webOrientation') {
+      return this.webOrientation;
+    }
     if (kind === 'os') {
       return this.engineOsLabel();
     }
