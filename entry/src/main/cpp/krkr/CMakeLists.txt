@@ -48,7 +48,13 @@ target_compile_definitions(krkrsdl3 PRIVATE
   _KRKRSDL3_USE_OPENGL=1
   _KRKRSDL3_USE_FFMPEG=1
 )
-target_compile_options(krkrsdl3 PRIVATE -fPIC -Wno-deprecated-declarations)
+# 软件渲染为标量 C（tvpgl），Debug 默认 -O0 会慢 5~10 倍；
+# Debug 下强制 -O2（保留 -g），Release 走默认优化
+target_compile_options(krkrsdl3 PRIVATE
+  -fPIC
+  -Wno-deprecated-declarations
+  $<$<CONFIG:Debug>:-O2>
+)
 set_target_properties(krkrsdl3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(krkrsdl3 PRIVATE

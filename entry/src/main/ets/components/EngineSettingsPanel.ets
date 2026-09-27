@@ -1,5 +1,5 @@
 import { AppTheme } from '../common/Theme';
-import { GameEngineConfig, SettingsStore, WebEngineConfig } from '../store/SettingsStore';
+import { GameEngineConfig, KiriKiriConfig, SettingsStore, WebEngineConfig } from '../store/SettingsStore';
 import { SettingRow } from './SettingRow';
 
 @Component
@@ -18,6 +18,7 @@ export struct EngineSettingsPanel {
   @State networkValue: boolean = true;
   @State volumeValue: number = 100;
   @State touchPadValue: boolean = false;
+  @State stretchValue: boolean = false;
   @State portText: string = `${WebEngineConfig.DEFAULT_PORT}`;
   @State overrides: GameEngineConfig = new GameEngineConfig();
 
@@ -65,11 +66,21 @@ export struct EngineSettingsPanel {
           }
         } else if (this.engineId === 'kirikiri') {
           ListItem() {
-            Text('KiriKiri 一期使用游戏内菜单设置，暂无宿主引擎参数。')
-              .fontSize(12)
-              .fontColor(AppTheme.textTertiary)
-              .width('100%')
-              .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding, top: 4 })
+            this.paramRow('屏幕方向', 'orientation')
+          }
+
+          ListItem() {
+            this.paramRow('画面比例', 'stretch')
+          }
+
+          ListItem() {
+            if (this.isGameScope()) {
+              this.paramRow('垂直同步', 'vsync')
+            } else {
+              this.switchRow('垂直同步', '限制帧率与画面撕裂', this.vsyncValue, (isOn: boolean) => {
+                this.toggleGlobal('vsync', isOn);
+              })
+            }
           }
         } else {
           ListItem() {
@@ -147,6 +158,13 @@ export struct EngineSettingsPanel {
       this.vsyncValue = config.vsync;
       return;
     }
+    if (this.engineId === 'kirikiri') {
+      const config = SettingsStore.kirikiriConfig(this.gameId);
+      this.orientationValue = config.orientation;
+      this.vsyncValue = config.vsync;
+      this.stretchValue = config.stretch;
+      return;
+    }
     const config = SettingsStore.webConfigFor(this.gameId, this.engineId);
     this.orientationValue = config.orientation;
     this.networkValue = config.network;
@@ -178,6 +196,9 @@ export struct EngineSettingsPanel {
     if (kind === 'touchPad') {
       return this.touchPadValue ? 'true' : 'false';
     }
+    if (kind === 'stretch') {
+      return this.stretchValue ? 'true' : 'false';
+    }
     if (kind === 'volume') {
       return `${Math.round(this.volumeValue)}`;
     }
@@ -203,6 +224,9 @@ export struct EngineSettingsPanel {
     if (kind === 'touchPad') {
       return this.overrides.touchPad;
     }
+    if (kind === 'stretch') {
+      return this.overrides.stretch;
+    }
     if (kind === 'volume') {
       return this.overrides.volume;
     }
@@ -222,6 +246,8 @@ export struct EngineSettingsPanel {
       this.overrides.network = value;
     } else if (kind === 'touchPad') {
       this.overrides.touchPad = value;
+    } else if (kind === 'stretch') {
+      this.overrides.stretch = value;
     } else if (kind === 'volume') {
       this.overrides.volume = value;
     } else {
@@ -240,6 +266,16 @@ export struct EngineSettingsPanel {
       }
       if (kind === 'orientation') {
         return config.orientation;
+      }
+      return config.vsync ? 'true' : 'false';
+    }
+    if (this.engineId === 'kirikiri') {
+      const config = SettingsStore.kirikiriConfig('');
+      if (kind === 'orientation') {
+        return config.orientation;
+      }
+      if (kind === 'stretch') {
+        return config.stretch ? 'true' : 'false';
       }
       return config.vsync ? 'true' : 'false';
     }
@@ -269,6 +305,9 @@ export struct EngineSettingsPanel {
     if (kind === 'vsync' || kind === 'network' || kind === 'touchPad') {
       return ['true', 'false'];
     }
+    if (kind === 'stretch') {
+      return ['false', 'true'];
+    }
     return ['固定横屏', '自动旋转'];
   }
 
@@ -287,6 +326,9 @@ export struct EngineSettingsPanel {
     }
     if (kind === 'vsync' || kind === 'network' || kind === 'touchPad') {
       return value === 'true' ? '开启' : '关闭';
+    }
+    if (kind === 'stretch') {
+      return value === 'true' ? '拉伸铺满' : '保持比例';
     }
     if (kind === 'volume') {
       const volume = parseInt(value, 10);
@@ -318,6 +360,18 @@ export struct EngineSettingsPanel {
       this.expandedKind = '';
       return;
     }
+    if (this.engineId === 'kirikiri') {
+      if (kind === 'orientation') {
+        this.orientationValue = value;
+      } else if (kind === 'stretch') {
+        this.stretchValue = value === 'true';
+      } else if (kind === 'vsync') {
+        this.vsyncValue = value === 'true';
+      }
+      this.persistKirikiriGlobal();
+      this.expandedKind = '';
+      return;
+    }
     if (kind === 'os') {
       this.osValue = value;
       SettingsStore.setString('stg_engineOs', value);
@@ -345,6 +399,17 @@ export struct EngineSettingsPanel {
   }
 
   private toggleGlobal(kind: string, isOn: boolean): void {
+    if (this.engineId === 'kirikiri') {
+      if (kind === 'vsync') {
+        this.vsyncValue = isOn;
+      } else if (kind === 'stretch') {
+        this.stretchValue = isOn;
+      } else {
+        this.orientationValue = isOn ? '自动旋转' : '固定横屏';
+      }
+      this.persistKirikiriGlobal();
+      return;
+    }
     if (kind === 'vsync') {
       this.vsyncValue = isOn;
       SettingsStore.setBool('stg_engineVsync', isOn);
@@ -356,6 +421,14 @@ export struct EngineSettingsPanel {
       this.touchPadValue = isOn;
     }
     this.persistWebGlobal();
+  }
+
+  private persistKirikiriGlobal(): void {
+    const config = new KiriKiriConfig();
+    config.orientation = this.orientationValue;
+    config.vsync = this.vsyncValue;
+    config.stretch = this.stretchValue;
+    SettingsStore.setKirikiriGlobal(config);
   }
 
   private persistWebGlobal(): void {

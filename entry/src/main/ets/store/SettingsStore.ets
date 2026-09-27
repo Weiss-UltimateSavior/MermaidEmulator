@@ -25,6 +25,13 @@ export class GameEngineConfig {
   volume: string = '';
   port: string = '';
   touchPad: string = '';
+  stretch: string = '';
+}
+
+export class KiriKiriConfig {
+  orientation: string = '固定横屏';
+  vsync: boolean = true;
+  stretch: boolean = false;
 }
 
 export class ArtemisConfig {
@@ -144,8 +151,71 @@ export class SettingsStore {
       if (typeof parsed.touchPad === 'string') {
         config.touchPad = parsed.touchPad;
       }
+      if (typeof parsed.stretch === 'string') {
+        config.stretch = parsed.stretch;
+      }
     } catch (err) {
       return config;
+    }
+    return config;
+  }
+
+  static kirikiriGlobal(): KiriKiriConfig {
+    const config = new KiriKiriConfig();
+    const pref = SettingsStore.pref;
+    if (pref === null) {
+      return config;
+    }
+    try {
+      const raw = pref.getSync('stg_krkr_config', '');
+      const text = typeof raw === 'string' ? raw : '';
+      if (text.length === 0) {
+        return config;
+      }
+      const parsed = JSON.parse(text) as KiriKiriConfig;
+      if (typeof parsed.orientation === 'string') {
+        config.orientation = parsed.orientation;
+      }
+      if (typeof parsed.vsync === 'boolean') {
+        config.vsync = parsed.vsync;
+      }
+      if (typeof parsed.stretch === 'boolean') {
+        config.stretch = parsed.stretch;
+      }
+    } catch (err) {
+      return config;
+    }
+    return config;
+  }
+
+  static setKirikiriGlobal(config: KiriKiriConfig): void {
+    const pref = SettingsStore.pref;
+    if (pref === null) {
+      return;
+    }
+    try {
+      pref.putSync('stg_krkr_config', JSON.stringify(config));
+      pref.flush((err) => {
+        if (err) {
+          hilog.warn(DOMAIN, TAG, 'kirikiri config flush failed: %{public}s', JSON.stringify(err));
+        }
+      });
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, 'kirikiri config persist failed: %{public}s', JSON.stringify(err));
+    }
+  }
+
+  static kirikiriConfig(gameId: string): KiriKiriConfig {
+    const config = SettingsStore.kirikiriGlobal();
+    const overrides = SettingsStore.gameEngineConfig(gameId);
+    if (overrides.orientation === '固定横屏' || overrides.orientation === '自动旋转') {
+      config.orientation = overrides.orientation;
+    }
+    if (overrides.vsync === 'true' || overrides.vsync === 'false') {
+      config.vsync = overrides.vsync === 'true';
+    }
+    if (overrides.stretch === 'true' || overrides.stretch === 'false') {
+      config.stretch = overrides.stretch === 'true';
     }
     return config;
   }

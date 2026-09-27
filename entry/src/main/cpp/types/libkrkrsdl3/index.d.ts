@@ -1,5 +1,6 @@
 export const initEngine: (gamePath: string) => boolean;
 export const setSaveDir: (path: string) => void;
+export const setEngineArgs: (args: string) => void;
 export const setResourceManager: (resMgr: object) => boolean;
 export const setSurface: (surfaceId: string) => boolean;
 export const shutdown: () => void;

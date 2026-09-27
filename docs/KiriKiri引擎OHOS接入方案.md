@@ -157,6 +157,7 @@ export const initEngine: (gamePath: string) => boolean;
 export const setSaveDir: (path: string) => void;          // 新增
 export const setResourceManager: (resMgr: object) => boolean;
 export const setSurface: (surfaceId: string) => boolean;
+export const setEngineArgs: (args: string) => void;        // 新增（-render/-vsync/-stretch 等）
 export const sendMouseEvent: (type: number, x: number, y: number, button: number) => void;
 export const sendKey: (vk: number, down: boolean) => void; // 新增（Windows VK）
 export const sendText: (text: string) => void;             // 新增（UTF-8，IME 提交）
@@ -261,6 +262,38 @@ entry/src/main/ets/engine/KirikiriEngine.ets # 引擎信息（READY、progress�
   `ohos_utils.cpp`（`tTVPScreen` 使用实际窗口尺寸）。
 - 未验证（待真机）：首帧渲染、音频、触摸/键盘/IME、存档落盘、退出后重进与换游戏、
   surface 销毁重建、包体与性能。
+
+**M1–M4（2026-09-27，真机 MIA-AL00，SDK 26 / HarmonyOS 7.0.0，实测《魔女的夜宴》Data.xp3）**
+
+- 安装与识别：HAP 45MB 安装成功；引擎页显示 KiriKiri READY；`GameFolderStore` 由 `Data.xp3`
+  自动识别为 `kirikiri` 并出现在游戏仓库。
+- 运行：启动 → 标题画面（横屏全屏），日志 `Selected Render: opengl`（内核渲染后端确认走 GL；
+  窗口合成由 `GLRenderBackend` + EGL ES3 完成）；OHAudio `under=0` 正常出声；用户实测可存档。
+- 生命周期：多次 force-stop/重启与退出重进均正常（移除 `exit(0)` 后的可重启路径生效）。
+- 引擎参数面板（引擎页 KiriKiri 面板 = 全局；游戏卡片「引擎设置」= 单游戏覆盖）：
+  - 参数：屏幕方向（固定横屏/自动旋转）、画面比例（保持比例/拉伸铺满）、垂直同步（开启/关闭）；
+  - 内核链路：`setEngineArgs` → `TVPParseArguments`（`-render=opengl`、`-vsync`、`-stretch`），
+    vsync 由宿主 `eglSwapInterval` 应用，`-stretch` 经 `TVPSetStretchMode` 影响合成 letterbox；
+  - 实测：全局「拉伸铺满」后画面铺满 19.5:9 全屏（黑边消失，日志 `stretch=1`）；
+    单游戏覆盖「保持比例」后日志 `stretch=0`（单游戏优先于全局，链路正确）。
+- 存储注：渲染后端在 OHOS 仅 OpenGL 上屏路径可用（软件后端依赖 SDL，`TVPSoftwareRenderBackendAvailable()`
+  在 OHOS 为 false），面板据此未提供「软件渲染」选项。
+- **性能修复（关键）**：初测「非常卡」，`top -H` 显示 `TVPTimerThread` 持续 103% CPU。
+  根因：`environ/ohos/ohos_thread.cpp` 的 `tTVPThreadEvent::WaitFor` 把 `INFINITE(0xFFFFFFFF→-1)`
+  当作超时毫秒数（未归一化 nsec，负超时立即返回），定时器线程在无任务时空转；SDL 后端
+  `SDL_WaitConditionTimeout(-1)` 语义为无限等待，OHOS 实现漏了该语义。修复：`timeout <= 0`
+  走无限 `pthread_cond_wait`，正超时归一化 `tv_nsec`。修复后同场景 `TVPTimerThread` 0%，
+  应用总 CPU 从 ~250% 降至 ~40%（标题界面含动画时渲染线程 ~28–75%）。
+- **性能修复（第二处）**：仍卡顿，宿主埋点（`perf:` 日志）显示 `run≈4.8s/5s` → 帧内 CPU 占满
+  （游戏 `BasicDrawDevice` 软渲染，paint box 1920×1080，约 95ms/帧、6–10fps）。根因：
+  hvigor 默认 Debug 构建 `-O0`，而 krkr 软件渲染是标量 C（tvpgl 无 NEON/SIMD 路径）。
+  修复：`entry/src/main/cpp/krkr/CMakeLists.txt` 对 `krkrsdl3` 目标在 Debug 下强制 `-O2`
+  （Release 走默认优化）。修复后标题界面 59–99fps（`run+render` ≈ 10–17ms/帧），
+  画面与之前一致（保持比例 letterbox 正常）。
+- 诊断日志（保留，低噪声）：`perf: fps/run/render/sprite`（5s 一次）、
+  `Window: sprite init/setPaintBoxSize`、`DrawDevice: ...`。
+- 待验证（真机）：键盘 `sendKey` / IME `sendText` 实际输入、侧边栏项（合成右键存读档）、
+  surface 销毁重建、长时间运行性能与发热。
 
 ## 10. 决策记录（2026-09-27 已确认）
 

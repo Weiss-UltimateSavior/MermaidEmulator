@@ -8,6 +8,7 @@ import { AppTheme } from '../common/Theme';
 import { Game } from '../model/Game';
 import { GameSidebar, GameSidebarItem } from '../components/GameSidebar';
 import { LibraryStore } from '../store/LibraryStore';
+import { KiriKiriConfig, SettingsStore } from '../store/SettingsStore';
 
 const DOMAIN: number = 0x4D45;
 const TAG: string = 'KirikiriPlayer';
@@ -84,6 +85,7 @@ struct KirikiriPlayer {
       this.density = 1;
     }
     this.gamePath = KirikiriPlayer.resolveGamePath(game.path);
+    const config: KiriKiriConfig = SettingsStore.kirikiriConfig(game.id);
     this.saveDir = `${context.filesDir}/krkr_saves/${game.id}`;
     try {
       if (!fileIo.accessSync(this.saveDir)) {
@@ -92,10 +94,11 @@ struct KirikiriPlayer {
     } catch (err) {
       hilog.warn(DOMAIN, TAG, 'create save dir failed: %{public}s', JSON.stringify(err));
     }
-    this.setupGameWindow(context);
+    this.setupGameWindow(context, config.orientation);
     this.setupCallbacks(context);
     try {
       krkr.setSaveDir(this.saveDir);
+      krkr.setEngineArgs(`-render=opengl -vsync=${config.vsync ? 1 : 0} -stretch=${config.stretch ? 1 : 0}`);
       krkr.setResourceManager(context.resourceManager);
       this.engineInited = krkr.initEngine(this.gamePath);
     } catch (err) {
@@ -155,10 +158,13 @@ struct KirikiriPlayer {
     return dir;
   }
 
-  private setupGameWindow(context: Context): void {
+  private setupGameWindow(context: Context, orientation: string): void {
+    const preferred = orientation === '自动旋转'
+      ? window.Orientation.AUTO_ROTATION_LANDSCAPE
+      : window.Orientation.LANDSCAPE;
     window.getLastWindow(context).then((win: window.Window) => {
       this.mainWindow = win;
-      win.setPreferredOrientation(window.Orientation.LANDSCAPE)
+      win.setPreferredOrientation(preferred)
         .then(() => win.setWindowLayoutFullScreen(true))
         .then(() => win.setWindowSystemBarEnable([]))
         .catch((err: BusinessError) => {
