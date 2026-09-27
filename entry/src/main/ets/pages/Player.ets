@@ -5,6 +5,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import artemisHost from 'libartemishost.so';
 import { AppTheme } from '../common/Theme';
 import { Game } from '../model/Game';
+import { GameSidebar, GameSidebarItem } from '../components/GameSidebar';
 import { LibraryStore } from '../store/LibraryStore';
 
 const DOMAIN: number = 0x4D45;
@@ -13,14 +14,15 @@ const TAG: string = 'Player';
 @Entry
 @Component
 struct Player {
-  @StorageLink('safeTopVp') safeTop: number = 0;
-  @State gameTitle: string = '';
   @State hostState: string = '正在启动内核…';
-  @State controlsVisible: boolean = false;
+  @State sidebarVisible: boolean = false;
   private gameId: string = '';
   private timer: number = -1;
   private mainWindow: window.Window | null = null;
-  private hideControlsTimer: number = -1;
+  private sidebarItems: GameSidebarItem[] = [
+    new GameSidebarItem('menu', '游戏菜单', $r('sys.symbol.line_3_horizontal')),
+    new GameSidebarItem('exit', '结束游戏', $r('sys.symbol.xmark'), true)
+  ];
 
   aboutToAppear(): void {
     this.gameId = AppStorage.get<string>('playerGameId') ?? '';
@@ -29,7 +31,6 @@ struct Player {
       this.hostState = '未找到游戏记录';
       return;
     }
-    this.gameTitle = game.title;
     const context = this.getUIContext().getHostContext();
     if (context === undefined) {
       this.hostState = '无法获取应用上下文';
@@ -69,10 +70,6 @@ struct Player {
     if (this.timer >= 0) {
       clearInterval(this.timer);
       this.timer = -1;
-    }
-    if (this.hideControlsTimer >= 0) {
-      clearTimeout(this.hideControlsTimer);
-      this.hideControlsTimer = -1;
     }
     artemisHost.stop();
     this.restoreAppWindow();
@@ -118,22 +115,40 @@ struct Player {
   }
 
   onBackPress(): boolean {
+    if (this.sidebarVisible) {
+      this.sidebarVisible = false;
+      return true;
+    }
     artemisHost.sendKey(8, true);
     artemisHost.sendKey(8, false);
     return true;
   }
 
-  private toggleControls(): void {
-    this.controlsVisible = !this.controlsVisible;
-    if (this.hideControlsTimer >= 0) {
-      clearTimeout(this.hideControlsTimer);
-      this.hideControlsTimer = -1;
+  private handleSidebarAction(key: string): void {
+    this.sidebarVisible = false;
+    if (key === 'menu') {
+      artemisHost.sendKey(93, true);
+      artemisHost.sendKey(93, false);
+      return;
     }
-    if (this.controlsVisible) {
-      this.hideControlsTimer = setTimeout(() => {
-        this.controlsVisible = false;
-        this.hideControlsTimer = -1;
-      }, 4000);
+    if (key === 'exit') {
+      this.getUIContext().showAlertDialog({
+        title: '结束游戏',
+        message: '未保存的游戏进度将会丢失，确定结束吗？',
+        autoCancel: true,
+        primaryButton: {
+          value: '取消',
+          action: () => {
+          }
+        },
+        secondaryButton: {
+          value: '结束',
+          fontColor: AppTheme.danger,
+          action: () => {
+            router.back();
+          }
+        }
+      });
     }
   }
 
@@ -165,60 +180,17 @@ struct Player {
         .width('100%')
         .height('100%')
 
-      Column() {
-        if (this.controlsVisible) {
-          Row({ space: 6 }) {
-            SymbolGlyph($r('sys.symbol.chevron_left'))
-              .fontSize(22)
-              .fontColor([AppTheme.onPrimary])
-              .padding({ left: 4, right: 8, top: 6, bottom: 6 })
-              .onClick(() => {
-                router.back();
-              })
-            Text(this.gameTitle)
-              .fontSize(16)
-              .fontColor(AppTheme.onPrimary)
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .layoutWeight(1)
-            Text('收起')
-              .fontSize(13)
-              .fontColor(AppTheme.onPrimary)
-              .padding({ left: 10, right: 4, top: 6, bottom: 6 })
-              .onClick(() => {
-                this.toggleControls();
-              })
+      if (this.sidebarVisible) {
+        GameSidebar({
+          items: this.sidebarItems,
+          onClose: () => {
+            this.sidebarVisible = false;
+          },
+          onAction: (key: string) => {
+            this.handleSidebarAction(key);
           }
-          .width('100%')
-          .padding({
-            left: 12,
-            right: 12,
-            top: 10,
-            bottom: 10
-          })
-          .backgroundColor('#66000000')
-        } else {
-          Stack() {
-            SymbolGlyph($r('sys.symbol.line_3_horizontal'))
-              .fontSize(18)
-              .fontColor([AppTheme.onPrimary])
-          }
-          .width(38)
-          .height(38)
-          .borderRadius(19)
-          .backgroundColor('#4D000000')
-          .onClick(() => {
-            this.toggleControls();
-          })
-        }
+        })
       }
-      .width('100%')
-      .padding({
-        left: 12,
-        right: 12,
-        top: this.safeTop + 8
-      })
-      .alignItems(HorizontalAlign.Start)
 
       if (this.hostState.length > 0) {
         Column() {
@@ -236,5 +208,11 @@ struct Player {
     .height('100%')
     .backgroundColor(Color.Black)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .parallelGesture(
+      TapGesture({ count: 1, fingers: 3 })
+        .onAction(() => {
+          this.sidebarVisible = !this.sidebarVisible;
+        })
+    )
   }
 }

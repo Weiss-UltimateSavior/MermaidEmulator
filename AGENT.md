@@ -6,7 +6,8 @@
 - 顶部栏只放页面标题；不放副标题、操作按钮、状态徽标或其他内容。
 - 页面顶部需遵循系统状态栏安全区，复用 `PageTopBar` 的安全区处理。
 - 页面背景统一使用 `AppBackground`；底部主导航使用 HDS `HdsTabs` 与官方沉浸光感材质能力。
-- 播放页 `pages/Player` 为原生渲染沉浸页：不使用 `PageTopBar`，使用顶部悬浮返回控件；进入时切换横屏（`window.Orientation.LANDSCAPE`）、全屏布局并隐藏系统栏，退出时还原竖屏与系统栏。
+- 播放页 `pages/Player` 为原生渲染沉浸页：不使用 `PageTopBar`；进入时切换横屏（`window.Orientation.LANDSCAPE`）、全屏布局并隐藏系统栏，退出时还原竖屏与系统栏。
+- 各引擎播放页的运行时游戏功能统一由三指点击唤出的侧边栏 `GameSidebar` 承载（虚拟按键与虚拟鼠标除外），功能项按引擎实际能力定制。
 
 ## 页面边距
 

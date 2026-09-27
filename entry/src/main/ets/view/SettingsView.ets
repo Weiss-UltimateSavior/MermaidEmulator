@@ -14,12 +14,12 @@ const DOMAIN: number = 0x4D45;
 const TAG: string = 'SettingsView';
 
 class SettingItem {
-  icon: Resource;
+  image: Resource;
   label: string;
   key: string;
 
-  constructor(icon: Resource, label: string, key: string) {
-    this.icon = icon;
+  constructor(image: Resource, label: string, key: string) {
+    this.image = image;
     this.label = label;
     this.key = key;
   }
@@ -46,10 +46,10 @@ export struct SettingsView {
   @State scrapeTotal: number = 0;
   @State scrapeCurrent: string = '';
   private settings: SettingItem[] = [
-    new SettingItem($r('sys.symbol.folder'), '游戏目录', 'folders'),
-    new SettingItem($r('sys.symbol.wand_and_stars'), '封面刮削', 'scraper'),
-    new SettingItem($r('sys.symbol.paintpalette'), '外观设置', 'appearance'),
-    new SettingItem($r('sys.symbol.gearshape'), '应用设置', 'application')
+    new SettingItem($r('app.media.setting_folder'), '游戏目录', 'folders'),
+    new SettingItem($r('app.media.setting_scraper'), '封面刮削', 'scraper'),
+    new SettingItem($r('app.media.setting_appearance'), '外观设置', 'appearance'),
+    new SettingItem($r('app.media.setting_application'), '应用设置', 'application')
   ];
 
   build() {
@@ -64,7 +64,7 @@ export struct SettingsView {
         ForEach(this.settings, (item: SettingItem) => {
           ListItem() {
             SettingRow({
-              icon: item.icon,
+              iconImage: item.image,
               title: item.label,
               arrow: true,
               onTap: () => {

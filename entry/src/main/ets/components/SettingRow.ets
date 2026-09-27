@@ -3,6 +3,8 @@ import { AppTheme } from '../common/Theme';
 @Component
 export struct SettingRow {
   icon: Resource = $r('sys.symbol.folder');
+  iconImage: Resource | null = null;
+  tintIconImage: boolean = false;
   showIcon: boolean = true;
   @StorageLink('themePrimary') themePrimary: string = AppTheme.primaryDefault;
   title: string = '';
@@ -21,9 +23,24 @@ export struct SettingRow {
   build() {
     Row({ space: 12 }) {
       if (this.showIcon) {
-        SymbolGlyph(this.icon)
-          .fontSize(24)
-          .fontColor([this.themePrimary])
+        if (this.iconImage !== null) {
+          if (this.tintIconImage) {
+            Image(this.iconImage)
+              .width(24)
+              .height(24)
+              .objectFit(ImageFit.Contain)
+              .colorFilter(this.themePrimary)
+          } else {
+            Image(this.iconImage)
+              .width(24)
+              .height(24)
+              .objectFit(ImageFit.Contain)
+          }
+        } else {
+          SymbolGlyph(this.icon)
+            .fontSize(24)
+            .fontColor([this.themePrimary])
+        }
       }
 
       Column({ space: 2 }) {

@@ -42,7 +42,8 @@ export struct KernelView {
         ForEach(this.engines, (engine: EngineCore) => {
           ListItem() {
             SettingRow({
-              icon: engine.icon,
+              iconImage: $r('app.media.engine_usb'),
+              tintIconImage: true,
               title: engine.name,
               onTap: () => {
                 this.openEngineSheet(engine.id);

@@ -6,6 +6,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { AppTheme } from '../common/Theme';
 import { Game } from '../model/Game';
+import { GameSidebar, GameSidebarItem } from '../components/GameSidebar';
 import { LibraryStore } from '../store/LibraryStore';
 import { TyranoAssets } from '../service/TyranoAssets';
 import { TyranoStore } from '../service/TyranoStore';
@@ -49,10 +50,9 @@ class WebBridge {
 @Entry
 @Component
 struct WebPlayer {
-  @StorageLink('safeTopVp') safeTop: number = 0;
   @State gameTitle: string = '';
   @State hostState: string = '正在启动…';
-  @State menuVisible: boolean = false;
+  @State sidebarVisible: boolean = false;
   private controller: webview.WebviewController = new webview.WebviewController();
   private assets: TyranoAssets | null = null;
   private saveDir: string = '';
@@ -63,6 +63,8 @@ struct WebPlayer {
   private bridgeName: string = 'appJsInterface';
   private config: WebEngineConfig = new WebEngineConfig();
   private origin: string = `${HOST}:${WebEngineConfig.DEFAULT_PORT}`;
+  private sidebarItems: GameSidebarItem[] = [];
+  private sidebarScripts: Map<string, string> = new Map<string, string>();
   private mzCoreAppend: string = '';
   private mzManagersAppend: string = '';
 
@@ -100,6 +102,7 @@ struct WebPlayer {
     this.setupGameWindow(context);
     this.loadHook(context);
     this.setupBridge();
+    this.setupSidebar();
     this.hostState = '';
   }
 
@@ -109,10 +112,94 @@ struct WebPlayer {
   }
 
   onBackPress(): boolean {
-    if (this.menuVisible) {
-      this.menuVisible = false;
+    if (this.sidebarVisible) {
+      this.sidebarVisible = false;
     }
     return true;
+  }
+
+  private setupSidebar(): void {
+    const items: GameSidebarItem[] = [];
+    const scripts = new Map<string, string>();
+    if (this.engineId === 'tyrano') {
+      items.push(new GameSidebarItem('save', '游戏存档', $r('sys.symbol.square_and_arrow_down')));
+      items.push(new GameSidebarItem('load', '游戏读档', $r('sys.symbol.archivebox')));
+      items.push(new GameSidebarItem('log', '对话履历', $r('sys.symbol.doc_text')));
+      items.push(new GameSidebarItem('auto', '自动播放', $r('sys.symbol.play_circle')));
+      items.push(new GameSidebarItem('skip', '快速跳过', $r('sys.symbol.fast_forward')));
+      scripts.set('save',
+        'try { if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.menu) TYRANO.kag.menu.displaySave(); } catch (e) {}');
+      scripts.set('load',
+        'try { if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.menu) TYRANO.kag.menu.displayLoad(); } catch (e) {}');
+      scripts.set('log',
+        'try { if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.menu) TYRANO.kag.menu.displayLog(); } catch (e) {}');
+      scripts.set('auto',
+        'try { if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.ftag) TYRANO.kag.ftag.startTag("autostart", {}); } catch (e) {}');
+      scripts.set('skip',
+        'try { if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.ftag) TYRANO.kag.ftag.startTag("skipstart", {}); } catch (e) {}');
+    } else if (this.engineId === 'rpgm_mv' || this.engineId === 'rpgm_mz') {
+      items.push(new GameSidebarItem('save', '游戏存档', $r('sys.symbol.square_and_arrow_down')));
+      items.push(new GameSidebarItem('load', '游戏读档', $r('sys.symbol.archivebox')));
+      items.push(new GameSidebarItem('options', '游戏设置', $r('sys.symbol.gearshape')));
+      items.push(new GameSidebarItem('title', '回到标题', $r('sys.symbol.house')));
+      scripts.set('save',
+        'try { if (typeof SceneManager !== "undefined" && typeof Scene_Save !== "undefined") SceneManager.push(Scene_Save); } catch (e) {}');
+      scripts.set('load',
+        'try { if (typeof SceneManager !== "undefined" && typeof Scene_Load !== "undefined") SceneManager.push(Scene_Load); } catch (e) {}');
+      scripts.set('options',
+        'try { if (typeof SceneManager !== "undefined" && typeof Scene_Options !== "undefined") SceneManager.push(Scene_Options); } catch (e) {}');
+      scripts.set('title',
+        'try { if (typeof SceneManager !== "undefined" && typeof Scene_Title !== "undefined") SceneManager.goto(Scene_Title); } catch (e) {}');
+    } else {
+      items.push(new GameSidebarItem('reload', '重新载入', $r('sys.symbol.arrow_clockwise')));
+      scripts.set('reload', 'try { window.location.reload(); } catch (e) {}');
+    }
+    items.push(new GameSidebarItem('exit', '结束游戏', $r('sys.symbol.xmark'), true));
+    this.sidebarItems = items;
+    this.sidebarScripts = scripts;
+  }
+
+  private handleSidebarAction(key: string): void {
+    this.sidebarVisible = false;
+    if (key === 'exit') {
+      this.confirmDestructive('结束游戏', '未保存的游戏进度将会丢失，确定结束吗？', '结束', () => {
+        this.bridge.closeGame();
+      });
+      return;
+    }
+    if (key === 'title') {
+      this.confirmDestructive('回到标题', '未保存的游戏进度将会丢失，确定回到标题界面吗？', '回到标题', () => {
+        this.runSidebarScript('title');
+      });
+      return;
+    }
+    this.runSidebarScript(key);
+  }
+
+  private runSidebarScript(key: string): void {
+    const script = this.sidebarScripts.get(key);
+    if (script !== undefined) {
+      this.runGameScript(script);
+    }
+  }
+
+  private confirmDestructive(title: string, message: string, confirmLabel: string,
+    action: () => void): void {
+    this.getUIContext().showAlertDialog({
+      title: title,
+      message: message,
+      autoCancel: true,
+      primaryButton: {
+        value: '取消',
+        action: () => {
+        }
+      },
+      secondaryButton: {
+        value: confirmLabel,
+        fontColor: AppTheme.danger,
+        action: action
+      }
+    });
   }
 
   private setupGameWindow(context: Context): void {
@@ -425,43 +512,17 @@ struct WebPlayer {
           controller: this.controller
         })
 
-      Column() {
-        if (this.menuVisible) {
-          Column({ space: 4 }) {
-            if (this.engineId === 'tyrano') {
-              this.menuButton('存档', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.menu) TYRANO.kag.menu.displaySave();')
-              this.menuButton('读档', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.menu) TYRANO.kag.menu.displayLoad();')
-              this.menuButton('自动', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.ftag) TYRANO.kag.ftag.startTag("autostart", {});')
-              this.menuButton('快进', 'if (typeof TYRANO !== "undefined" && TYRANO.kag && TYRANO.kag.ftag) TYRANO.kag.ftag.startTag("skipstart", {});')
-            }
-            this.menuButton('结束',
-              `if ("${this.bridgeName}" in window) ${this.bridgeName}.closeGame();`)
+      if (this.sidebarVisible) {
+        GameSidebar({
+          items: this.sidebarItems,
+          onClose: () => {
+            this.sidebarVisible = false;
+          },
+          onAction: (key: string) => {
+            this.handleSidebarAction(key);
           }
-          .padding(6)
-          .backgroundColor('#CC000000')
-          .borderRadius(14)
-        } else {
-          Stack() {
-            SymbolGlyph($r('sys.symbol.line_3_horizontal'))
-              .fontSize(18)
-              .fontColor([AppTheme.onPrimary])
-          }
-          .width(38)
-          .height(38)
-          .borderRadius(19)
-          .backgroundColor('#4D000000')
-          .onClick(() => {
-            this.menuVisible = true;
-          })
-        }
+        })
       }
-      .width('100%')
-      .padding({
-        left: 12,
-        right: 12,
-        top: this.safeTop + 8
-      })
-      .alignItems(HorizontalAlign.Start)
 
       if (this.hostState.length > 0) {
         Column() {
@@ -479,19 +540,11 @@ struct WebPlayer {
     .height('100%')
     .backgroundColor(Color.Black)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-  }
-
-  @Builder
-  menuButton(label: string, code: string) {
-    Text(label)
-      .fontSize(14)
-      .fontColor(AppTheme.onPrimary)
-      .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-      .clickEffect(null)
-      .hoverEffect(HoverEffect.None)
-      .onClick(() => {
-        this.menuVisible = false;
-        this.runGameScript(code);
-      })
+    .parallelGesture(
+      TapGesture({ count: 1, fingers: 3 })
+        .onAction(() => {
+          this.sidebarVisible = !this.sidebarVisible;
+        })
+    )
   }
 }
