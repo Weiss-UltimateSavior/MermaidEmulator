@@ -1,3 +1,4 @@
+import { bundleManager } from '@kit.AbilityKit';
 import { picker } from '@kit.CoreFileKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppTheme } from '../common/Theme';
@@ -45,12 +46,24 @@ export struct SettingsView {
   @State scrapeDone: number = 0;
   @State scrapeTotal: number = 0;
   @State scrapeCurrent: string = '';
+  private appVersion: string = '1.0.0';
   private settings: SettingItem[] = [
     new SettingItem($r('app.media.setting_folder'), '游戏目录', 'folders'),
     new SettingItem($r('app.media.setting_scraper'), '封面刮削', 'scraper'),
     new SettingItem($r('app.media.setting_appearance'), '外观设置', 'appearance'),
-    new SettingItem($r('app.media.setting_application'), '应用设置', 'application')
+    new SettingItem($r('app.media.setting_application'), '关于应用', 'about')
   ];
+
+  aboutToAppear(): void {
+    try {
+      const info = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT);
+      if (info.versionName.length > 0) {
+        this.appVersion = info.versionName;
+      }
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, 'read app version failed: %{public}s', JSON.stringify(err));
+    }
+  }
 
   build() {
     Column({ space: AppTheme.topBarGap }) {
@@ -99,6 +112,8 @@ export struct SettingsView {
       this.appearanceSheet()
     } else if (this.activeSheet === 'wheel') {
       this.wheelSheet()
+    } else if (this.activeSheet === 'about') {
+      this.aboutSheet()
     } else {
       this.folderSheet()
     }
@@ -339,6 +354,10 @@ export struct SettingsView {
       this.activeSheet = 'appearance';
       this.showSheet = true;
     }
+    if (key === 'about') {
+      this.activeSheet = 'about';
+      this.showSheet = true;
+    }
   }
 
   @Builder
@@ -377,6 +396,74 @@ export struct SettingsView {
             .fontColor(AppTheme.textTertiary)
             .width('100%')
             .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding, top: 4 })
+        }
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .padding({ left: AppTheme.pagePadding, right: AppTheme.pagePadding })
+      .scrollBar(BarState.Off)
+    }
+    .width('100%')
+    .height('100%')
+    .padding({
+      top: 20,
+      bottom: 20
+    })
+  }
+
+  @Builder
+  aboutSheet() {
+    Column() {
+      List({ space: 8 }) {
+        ListItem() {
+          Column({ space: 8 }) {
+            Image($r('app.media.app_icon'))
+              .width(76)
+              .height(76)
+              .objectFit(ImageFit.Cover)
+              .borderRadius(38)
+              .clip(true)
+
+            Text('美人鱼模拟器')
+              .fontSize(20)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppTheme.textPrimary)
+
+            Text(`版本 ${this.appVersion}`)
+              .fontSize(13)
+              .fontColor(AppTheme.textTertiary)
+          }
+          .width('100%')
+          .padding({ top: 12, bottom: 16 })
+          .alignItems(HorizontalAlign.Center)
+        }
+
+        ListItem() {
+          Column({ space: 8 }) {
+            Text('关于应用')
+              .fontSize(16)
+              .fontColor(AppTheme.textPrimary)
+              .width('100%')
+
+            Text('美人鱼模拟器是运行在 HarmonyOS 上的视觉小说与网页游戏模拟器，支持 Artemis、KiriKiri、TyranoScript、RPG Maker MV/MZ 等引擎，游戏资源仅在本地读取。')
+              .fontSize(13)
+              .fontColor(AppTheme.textTertiary)
+              .width('100%')
+          }
+          .width('100%')
+          .padding(AppTheme.pagePadding)
+          .backgroundColor(AppTheme.surface)
+          .borderRadius(AppTheme.radiusM)
+          .alignItems(HorizontalAlign.Start)
+        }
+
+        ListItem() {
+          SettingRow({
+            icon: $r('sys.symbol.envelope'),
+            title: '联系邮箱',
+            detail: '1808822453@qq.com',
+            radius: AppTheme.radiusM
+          })
         }
       }
       .width('100%')

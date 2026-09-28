@@ -37,7 +37,8 @@ struct Player {
       this.hostState = '无法获取应用上下文';
       return;
     }
-    this.setupGameWindow(context);
+    const config = SettingsStore.artemisConfig(game.id);
+    this.setupGameWindow(context, config.orientation);
     const saveDir = `${context.filesDir}/saves/${game.id}`;
     try {
       if (!fileIo.accessSync(saveDir)) {
@@ -46,7 +47,6 @@ struct Player {
     } catch (err) {
       hilog.warn(DOMAIN, TAG, 'create save dir failed: %{public}s', JSON.stringify(err));
     }
-    const config = SettingsStore.artemisConfig(game.id);
     const sidecut = config.scale === '铺满裁剪' ? 1 : (config.scale === '保持比例' ? 0 : -1);
     try {
       artemisHost.start({
@@ -74,8 +74,7 @@ struct Player {
     this.restoreAppWindow();
   }
 
-  private setupGameWindow(context: Context): void {
-    const orientation = AppStorage.get<string>('stg_engineOrientation') ?? '固定横屏';
+  private setupGameWindow(context: Context, orientation: string): void {
     const preferred = orientation === '自动旋转'
       ? window.Orientation.AUTO_ROTATION_LANDSCAPE
       : window.Orientation.LANDSCAPE;
