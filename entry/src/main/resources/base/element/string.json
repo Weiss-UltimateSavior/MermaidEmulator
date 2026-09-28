@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "美人鱼模拟器"
+    },
+    {
+      "name": "reason_file_access_persist",
+      "value": "用于持久保留你对游戏目录的访问授权，应用重启后继续扫描并读取已授权目录中的游戏资源"
     }
   ]
 }

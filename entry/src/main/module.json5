@@ -12,7 +12,14 @@
     "pages": "$profile:main_pages",
     "requestPermissions": [
       {
-        "name": "ohos.permission.FILE_ACCESS_PERSIST"
+        "name": "ohos.permission.FILE_ACCESS_PERSIST",
+        "reason": "$string:reason_file_access_persist",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
       },
       {
         "name": "ohos.permission.INTERNET"
