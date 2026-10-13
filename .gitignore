@@ -11,3 +11,4 @@
 **/.test
 /.appanalyzer
 /third_party/krkrsdl3-deps/
+/signing/local.json5

@@ -1,0 +1,20 @@
+#!/bin/sh
+# 阻止将签名密钥等敏感内容提交进 git 历史。
+# 安装：cp tools/git-hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+if git rev-parse --verify HEAD >/dev/null 2>&1; then
+  against=HEAD
+else
+  against=$(git hash-object -t tree /dev/null)
+fi
+
+fail=0
+for f in $(git diff --cached --name-only --diff-filter=ACM $against); do
+  if git show ":$f" 2>/dev/null | grep -qE '0000001B[0-9A-Fa-f]|hmke[y]/'; then
+    echo "pre-commit: $f 包含签名密钥（DevEco 加密密码或证书路径），已阻止提交。" >&2
+    echo "pre-commit: 真实配置请放入 signing/local.json5（不入库），并用 tools/apply_signing.py 注入。" >&2
+    fail=1
+  fi
+done
+
+exit $fail

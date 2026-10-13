@@ -43,4 +43,5 @@
 - krkrsdl3 原生目标在 Debug 构建下强制 `-O2`（软件渲染为标量 C，`-O0` 会严重掉帧）；OHOS 平台层线程事件须区分 `INFINITE(-1)` 与正超时，避免定时器线程空转。
 - 引擎参数分全局与单游戏两级：全局参数在引擎页配置，单游戏覆盖在游戏卡片「引擎设置」中配置；单游戏优先，未设置项跟随全局，播放页按生效配置启动。两级配置共用 `EngineSettingsPanel`。
 - 游戏卡片「名称修改」仅修改游戏库中的显示名称，不重命名游戏目录；「删除游戏」仅移除游戏仓库记录与单游戏配置，不删除游戏目录、封面、存档等任何文件。
+- 签名配置不入库：`build-profile.json5` 中 `signingConfigs` 保留 `/*SIGNING_CONFIGS*/ []` 占位标记，真实配置放在 `signing/local.json5`（已被 .gitignore 排除），构建前运行 `python3 tools/apply_signing.py` 注入；`.git/hooks/pre-commit`（源文件 `tools/git-hooks/pre-commit`）会阻止包含密钥的提交。
 - 页面间新增复用能力应优先抽取公共组件，避免重复实现页面标题栏和材质效果。
